@@ -240,7 +240,7 @@ pre.sql{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-si
 
 /* ================= 설정 ================= */
 const BUCKET = 'exam-media';
-const SCHEMA_VERSION = '2';
+const SCHEMA_VERSION = '3';
 const CFG_KEY = 'sueo-sb-config';
 const MAX_VIDEO = 10 * 1024 * 1024;
 
@@ -251,7 +251,7 @@ create table if not exists public.settings (
   key text primary key,
   value text not null
 );
-insert into public.settings (key, value) values ('schema_version', '2')
+insert into public.settings (key, value) values ('schema_version', '3')
   on conflict (key) do nothing;
 
 create table if not exists public.exams (
@@ -276,7 +276,8 @@ create table if not exists public.questions (
   options jsonb not null default '[]'::jsonb,
   answer_option text,
   model_answer text not null default '',
-  media_paths text[] not null default '{}'
+  media_paths text[] not null default '{}',
+  points int not null default 1
 );
 
 create table if not exists public.submissions (
@@ -300,6 +301,7 @@ create table if not exists public.bank_questions (
   answer_option text,
   model_answer text not null default '',
   media_paths text[] not null default '{}',
+  points int not null default 1,
   created_at timestamptz not null default now()
 );
 
@@ -425,17 +427,17 @@ begin
       if q.answer_option is null then
         ok := null;
       else
-        total := total + 1;
+        total := total + q.points;
         ok := exists (select 1 from jsonb_array_elements(coalesce(s.answers, '[]'::jsonb)) a
                       where a->>'qid' = q.id::text and a->>'choice' = q.answer_option);
-        if ok then got := got + 1; end if;
+        if ok then got := got + q.points; end if;
       end if;
-      items := items || jsonb_build_array(jsonb_build_object('no', n, 'type', 'mc', 'ok', ok));
+      items := items || jsonb_build_array(jsonb_build_object('no', n, 'type', 'mc', 'ok', ok, 'points', q.points));
     else
-      total := total + 1;
+      total := total + q.points;
       ok := coalesce((s.scores ->> q.id::text)::boolean, false);
-      if ok then got := got + 1; end if;
-      items := items || jsonb_build_array(jsonb_build_object('no', n, 'type', 'essay', 'ok', ok));
+      if ok then got := got + q.points; end if;
+      items := items || jsonb_build_array(jsonb_build_object('no', n, 'type', 'essay', 'ok', ok, 'points', q.points));
     end if;
   end loop;
   return jsonb_build_object('name', s.name, 'got', got, 'total', total, 'items', items);
@@ -679,7 +681,7 @@ async function saveExam(){
   const rows = cur.questions.map((q, i) => ({
     id: q.id, exam_id: ex.id, position: i, type: q.type, body: q.body || '', media: q.media,
     options: q.options || [], answer_option: q.answer_option || null, model_answer: q.model_answer || '',
-    media_paths: pathsOf(q)
+    points: q.points == null ? 1 : Number(q.points), media_paths: pathsOf(q)
   }));
   if (rows.length) {
     const { error: e2 } = await sb.from('questions').upsert(rows);
@@ -741,7 +743,7 @@ async function duplicateExam(){
   if (error) { toast('복제 실패: ' + error.message, true); return; }
   const qs = cur.questions.map((q, i) => ({
     id: newUuid(), exam_id: ex.id, position: i, type: q.type, body: q.body, media: q.media,
-    options: q.options, answer_option: q.answer_option, model_answer: q.model_answer, media_paths: pathsOf(q)
+    options: q.options, answer_option: q.answer_option, model_answer: q.model_answer, points: q.points, media_paths: pathsOf(q)
   }));
   if (qs.length) {
     const { error: e2 } = await sb.from('questions').insert(qs);
@@ -935,24 +937,26 @@ function questionEditor(q){
         <button class="btn btn-danger" data-act="delQ">삭제</button>
       </div>
     </div>
+    <div class="row" style="margin-top:8px"><label class="lbl" style="margin:0">배점</label><input class="input small" type="number" min="0" max="100" step="1" data-q="points" value="${pts(q)}" style="width:90px"><span class="hint">점</span></div>
     <label class="lbl">문제 내용 (한글 가능)</label>
     <textarea class="input" rows="3" data-q="body" placeholder="예) 다음 수어의 뜻으로 알맞은 것은?">${esc(q.body)}</textarea>
     <label class="lbl">문제 그림·동영상 (선택)</label>
     ${mediaEditorHTML(q.media, q.id, '')}
     ${body}`;
 }
+const pts = (q) => (q.points == null ? 1 : Number(q.points));
 function scoreOf(sub){
   let got = 0, total = 0;
   cur.questions.forEach(q => {
     if (q.type === 'mc') {
       if (q.answer_option) {
-        total++;
+        total += pts(q);
         const a = (sub.answers || []).find(x => x.qid === q.id);
-        if (a && a.choice === q.answer_option) got++;
+        if (a && a.choice === q.answer_option) got += pts(q);
       }
     } else {
-      total++;
-      if (sub.scores && sub.scores[q.id]) got++;
+      total += pts(q);
+      if (sub.scores && sub.scores[q.id]) got += pts(q);
     }
   });
   return { got, total };
@@ -988,7 +992,7 @@ function renderSubDetail(){
     return `<div class="opt-ed"><b>${i + 1}번 · 주관식</b> ${a.flag ? '<span class="ng">⚠ 애매함</span>' : ''}
       <p class="essay-cell">${txt ? esc(a.text) : '미응답'}</p>
       ${q.model_answer ? `<p class="hint">모범 답안: ${esc(q.model_answer)}</p>` : ''}
-      <label class="row"><input type="checkbox" data-gq="${q.id}" ${s.scores && s.scores[q.id] ? 'checked' : ''}> 정답 처리 (1점)</label></div>`;
+      <label class="row"><input type="checkbox" data-gq="${q.id}" ${s.scores && s.scores[q.id] ? 'checked' : ''}> 정답 처리 (${pts(q)}점)</label></div>`;
   }).join('');
   return `
     ${headerBar()}
@@ -1035,7 +1039,7 @@ function exportExam(){
     exported_at: new Date().toISOString(),
     exam: { title: cur.exam.title || '', opens_at: cur.exam.opens_at || null },
     questions: cur.questions.map(q => ({
-      type: q.type, body: q.body || '', media: q.media || { kind: 'none' },
+      type: q.type, body: q.body || '', points: q.points == null ? 1 : Number(q.points), media: q.media || { kind: 'none' },
       options: q.options || [], answer_option: q.answer_option || null, model_answer: q.model_answer || ''
     }))
   };
@@ -1064,7 +1068,7 @@ async function importExamFile(file){
   const rows = data.questions.map((q, i) => ({
     id: newUuid(), exam_id: ex.id, position: i,
     type: q.type === 'essay' ? 'essay' : 'mc',
-    body: q.body || '', media: q.media || { kind: 'none' }, options: q.options || [],
+    body: q.body || '', points: Number(q.points) || 1, media: q.media || { kind: 'none' }, options: q.options || [],
     answer_option: q.answer_option || null, model_answer: q.model_answer || '',
     media_paths: pathsOf(q)
   }));
@@ -1103,7 +1107,7 @@ async function act(name, el){
     case 'del': return deleteExam();
     case 'addQ': {
       const type = el.dataset.type;
-      const q = { id: newUuid(), type, body: '', media: { kind: 'none' }, options: [], answer_option: null, model_answer: '' };
+      const q = { id: newUuid(), type, body: '', media: { kind: 'none' }, options: [], answer_option: null, model_answer: '', points: 1 };
       if (type === 'mc') for (let i = 0; i < 4; i++) q.options.push({ id: shortId(), text: '', media: { kind: 'none' } });
       cur.questions.push(q); cur.qid = q.id; markDirty();
       return renderMain();
@@ -1141,7 +1145,7 @@ async function act(name, el){
       const q = cur.questions.find(x => x.id === cur.qid);
       if (!q) return;
       const { error } = await sb.from('bank_questions').insert({
-        type: q.type, body: q.body || '', media: q.media, options: q.options || [],
+        type: q.type, body: q.body || '', media: q.media, options: q.options || [], points: q.points || 1,
         answer_option: q.answer_option || null, model_answer: q.model_answer || '', media_paths: pathsOf(q)
       });
       if (error) return toast('문제은행 저장 실패: ' + error.message, true);
@@ -1152,7 +1156,7 @@ async function act(name, el){
       const b = bankCache.find(x => x.id === el.dataset.bid);
       if (!b) return;
       const q = { id: newUuid(), type: b.type, body: b.body, media: b.media, options: b.options,
-        answer_option: b.answer_option, model_answer: b.model_answer };
+        answer_option: b.answer_option, model_answer: b.model_answer, points: b.points || 1 };
       cur.questions.push(q); cur.qid = q.id; cur.view = 'edit'; markDirty();
       return renderMain();
     }
@@ -1189,6 +1193,7 @@ teacherEl.addEventListener('input', (e) => {
   const t = e.target;
   if (t.dataset.ex === 'title') { cur.exam.title = t.value; markDirty(); }
   else if (t.dataset.q === 'body') { const q = cur.questions.find(x => x.id === cur.qid); if (q) { q.body = t.value; markDirty(); } }
+  else if (t.dataset.q === 'points') { const q = cur.questions.find(x => x.id === cur.qid); if (q) { q.points = Math.max(0, Math.min(100, parseInt(t.value, 10) || 0)); markDirty(); } }
   else if (t.dataset.q === 'model') { const q = cur.questions.find(x => x.id === cur.qid); if (q) { q.model_answer = t.value; markDirty(); } }
   else if (t.dataset.o === 'text') { const tg = getTarget(cur.qid, t.dataset.oid); if (tg) { tg.obj.text = t.value; markDirty(); } }
   else if (t.dataset.m === 'yt') {
@@ -1332,13 +1337,13 @@ async function checkResult(){
 function renderResult(r){
   const rows = (r.items || []).map(it => {
     const mark = it.ok === null ? '<span class="hint">채점 전</span>' : (it.ok ? '<span class="ok">⭕ 맞음</span>' : '<span class="ng">❌ 틀림</span>');
-    return `<tr><td>${it.no}</td><td>${it.type === 'mc' ? '객관식' : '주관식'}</td><td>${mark}</td></tr>`;
+    return `<tr><td>${it.no}</td><td>${it.type === 'mc' ? '객관식' : '주관식'}</td><td>${mark}</td><td>${it.points}점</td></tr>`;
   }).join('');
   $('#sMain').innerHTML = `
     <div style="max-width:560px;margin:0 auto">
       <h2 class="h2 center">${esc(r.name)}님의 성적</h2>
       <p class="score">${r.got} / ${r.total}점</p>
-      <table class="res"><thead><tr><th>번호</th><th>유형</th><th>결과</th></tr></thead><tbody>${rows}</tbody></table>
+      <table class="res"><thead><tr><th>번호</th><th>유형</th><th>결과</th><th>배점</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="row" style="margin-top:14px"><button class="btn" data-back="1">← 돌아가기</button></div>
     </div>`;
 }
