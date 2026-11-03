@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수어 시험 시스템</title>
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--line:#e2e6ee;--text:#1f2937;--muted:#6b7280;--primary:#2563eb;--primary-soft:#dbeafe;--warn:#f59e0b;--warn-soft:#fef3c7;--danger:#dc2626;--ok:#15803d}
+[hidden]{display:none !important}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+header{background:#1e3a8a;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;flex:1}
+#who{font-size:13px;opacity:.85}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font:inherit;font-size:14px;color:var(--text)}
+.btn:hover{background:#f9fafb}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.wide{width:100%;text-align:center;margin-bottom:8px}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:#1d4ed8}
+.btn-danger{color:var(--danger)}
+.btn-light{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.panel-soft{background:#fafbfc;border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+.narrow{max-width:560px;margin:40px auto}
+.layout{display:grid;grid-template-columns:260px 1fr;gap:16px;padding:16px;min-height:calc(100vh - 60px);align-items:start}
+@media (max-width:820px){.layout{grid-template-columns:1fr}}
+.split{display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:start}
+@media (max-width:820px){.split{grid-template-columns:1fr}}
+.row{display:flex;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.center{text-align:center}
+.hint{color:var(--muted);font-size:13px;margin:6px 0}
+.lbl{display:block;font-weight:700;margin:14px 0 6px}
+.h2{font-size:20px;margin:0 0 10px}
+.h3{font-size:16px;margin:18px 0 8px}
+.input{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;background:#fff;color:var(--text)}
+textarea.input{resize:vertical}
+.input.small{padding:6px 8px;font-size:13px;width:auto}
+.media-ed .input.small{width:100%}
+.media-ed{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:6px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.qnum{position:relative;aspect-ratio:1;border:none;border-radius:10px;background:#d1d5db;color:#374151;font:inherit;font-weight:700;font-size:15px;cursor:pointer;padding:0}
+.qnum.essay{box-shadow:inset 0 0 0 2px #a5b4fc}
+.qnum.answered{background:var(--primary);color:#fff}
+.qnum.flagged{background:var(--warn);color:#fff}
+.qnum.current{outline:3px solid #111827;outline-offset:2px}
+.qnum .flag{position:absolute;top:-6px;right:-6px;background:#fff;border-radius:50%;font-size:11px;line-height:1;padding:2px 3px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:14px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin-right:4px}
+.media{display:block;max-width:100%;border-radius:12px}
+img.media{object-fit:contain}
+video.media{background:#000}
+.q-media{max-height:60vh;margin:10px 0 16px}
+img.q-media{width:auto;margin:0 auto}
+video.q-media{width:100%}
+.opt-media{max-height:220px;margin-top:6px}
+.preview{max-width:260px;max-height:160px;margin-top:4px}
+.yt{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;margin:10px 0 16px;background:#000}
+.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.yt.preview{width:260px;max-width:100%;aspect-ratio:16/9;margin:4px 0}
+.qtext{font-size:20px;line-height:1.6;white-space:pre-wrap;margin:6px 0 12px}
+.opts-s{display:grid;gap:10px;margin-top:12px}
+.opt-s{display:flex;gap:12px;align-items:flex-start;border:2px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;background:#fff}
+.opt-s:hover{border-color:#93c5fd}
+.opt-s:focus{outline:3px solid #93c5fd}
+.opt-s.on{border-color:var(--primary);background:var(--primary-soft)}
+.opt-num{flex:0 0 36px;height:36px;border-radius:50%;background:#e5e7eb;display:grid;place-items:center;font-weight:700}
+.opt-s.on .opt-num{background:var(--primary);color:#fff}
+.opt-body{flex:1;min-width:0}
+.opt-text{font-size:17px;white-space:pre-wrap}
+.flag-chk{display:flex;gap:6px;align-items:center;background:var(--warn-soft);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+.opt-ed{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;background:#fafbfc}
+.exam-item{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;font:inherit}
+.exam-item.on{border-color:var(--primary);background:var(--primary-soft)}
+.badge{color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
+.res{width:100%;border-collapse:collapse;margin-top:12px}
+.res th,.res td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+.essay-cell{white-space:pre-wrap}
+.ok{color:var(--ok);font-weight:700}
+.ng{color:var(--danger);font-weight:700}
+.info{background:#f1f5f9;border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px}
+.warnbox{background:var(--warn-soft);color:#78350f;border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:50;max-width:90vw;display:none}
+#toast.err{background:var(--danger)}
+dialog#manualDlg{width:min(760px,92vw);max-height:85vh;border:none;border-radius:16px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);color:var(--text);background:#fff}
+dialog#manualDlg::backdrop{background:rgba(0,0,0,.4)}
+.man h3{font-size:16px;margin:18px 0 6px;color:#1e3a8a}
+.man p,.man li{line-height:1.6;font-size:14.5px}
+.man ol,.man ul{padding-left:20px;margin:4px 0}
+pre.sql{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-size:12px;max-height:260px;overflow:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="appTitle">수어 시험 시스템</h1>
+  <span id="who"></span>
+  <button class="btn btn-light" id="btnManual">📖 사용설명서</button>
+  <button class="btn btn-light" id="btnSetting" hidden>연결 설정</button>
+  <button class="btn btn-light" id="btnLogout" hidden>로그아웃</button>
+</header>
+
+<!-- 1. 처음 연결 (강사) -->
+<section id="setup" class="panel narrow" hidden>
+  <h2 class="h2">Supabase 연결</h2>
+  <p class="hint">강사님 Supabase 프로젝트의 주소와 공개 키를 입력합니다. (Project Settings → API 에서 복사)</p>
+  <label class="lbl">Project URL</label>
+  <input class="input" id="cfgUrl" placeholder="https://xxxx.supabase.co">
+  <label class="lbl">anon public key</label>
+  <input class="input" id="cfgKey" placeholder="eyJ...">
+  <div class="row wrap" style="margin-top:14px"><button class="btn btn-primary" id="btnConnect">연결 확인</button></div>
+  <div id="setupMsg"></div>
+  <div id="installBox" hidden>
+    <div class="warnbox">아직 설치되지 않았습니다. 아래 SQL을 복사해서 Supabase의 <b>SQL Editor</b>에 붙여넣고 <b>Run</b>을 누른 뒤, 위의 [연결 확인]을 다시 누르세요. <b>SQL은 한 번만 실행합니다.</b></div>
+    <div class="row wrap"><button class="btn" id="btnCopySql">설치 SQL 복사</button></div>
+    <pre class="sql" id="sqlView"></pre>
+  </div>
+</section>
+
+<!-- 2. 강사 로그인 -->
+<section id="auth" class="panel narrow" hidden>
+  <h2 class="h2">강사 로그인</h2>
+  <label class="lbl">이메일</label>
+  <input class="input" id="authEmail" type="email">
+  <label class="lbl">비밀번호 (6자 이상)</label>
+  <input class="input" id="authPw" type="password">
+  <div class="row wrap" style="margin-top:14px">
+    <button class="btn btn-primary" id="btnLogin">로그인</button>
+    <button class="btn" id="btnSignup">처음이면 가입</button>
+  </div>
+  <p class="hint">가입 후 인증 메일이 오면 링크를 누른 뒤 로그인하세요.</p>
+  <div id="authMsg"></div>
+</section>
+
+<!-- 3. 강사 화면 -->
+<div id="teacher" class="layout" hidden>
+  <aside class="panel">
+    <button class="btn btn-primary wide" data-act="newExam">+ 새 시험</button>
+    <div class="hint">내 시험 목록</div>
+    <div id="examList"></div>
+    <div class="info">📦 저장 공간과 전송량은 Supabase의 <b>Usage(사용량)</b> 메뉴에서 확인하세요. 영상은 10MB 이하 권장이며, 끝난 시험은 삭제하세요.</div>
+  </aside>
+  <section class="panel" id="tMain"><p class="hint">왼쪽에서 시험을 고르거나 새 시험을 만드세요.</p></section>
+</div>
+
+<!-- 4. 수강생 화면 -->
+<div id="student" class="layout" hidden>
+  <aside class="panel">
+    <label class="lbl" style="margin-top:0">이름 (필수)</label>
+    <input class="input" id="sName" placeholder="예) 홍길동">
+    <p class="hint">답을 모두 고른 뒤 맨 아래 [시험 제출]을 누르세요.</p>
+    <div class="grid" id="sGrid"></div>
+    <div class="legend">
+      <span><i style="background:#d1d5db"></i>미응시</span>
+      <span><i style="background:#2563eb"></i>응시</span>
+      <span><i style="background:#f59e0b"></i>⚠ 애매함</span>
+    </div>
+  </aside>
+  <section class="panel" id="sMain"></section>
+</div>
+
+<div id="toast"></div>
+
+<dialog id="manualDlg">
+  <div class="row between wrap"><h2 class="h2">사용설명서</h2><button class="btn" id="btnManualClose">닫기</button></div>
+  <div class="man" id="manT" hidden>
+    <h3>1. 처음 한 번 설치</h3>
+    <ol>
+      <li>supabase.com에서 가입하고 <b>New project</b>로 프로젝트를 만듭니다. 데이터베이스 비밀번호는 메모해 두세요.</li>
+      <li>이 앱의 <b>연결 설정</b>에서 설치 SQL을 복사해 Supabase <b>SQL Editor</b>에 붙여넣고 <b>Run</b>을 누릅니다.</li>
+      <li>Project Settings → API에서 <b>Project URL</b>과 <b>anon public key</b>를 붙여넣고 [연결 확인]을 누릅니다.</li>
+      <li>이메일로 강사 계정을 만들고 로그인합니다.</li>
+    </ol>
+    <h3>2. 시험 만들기</h3>
+    <ul>
+      <li><b>+ 새 시험</b>을 누르고 제목, 응시 시작 시각을 정합니다.</li>
+      <li>문항을 추가하고 객관식은 <b>정답 보기를 ●로 고릅니다.</b></li>
+      <li><b>💾 저장</b>을 누른 뒤, 시험 당일에 <b>🔗 링크 복사</b>로 학생에게 보냅니다.</li>
+    </ul>
+    <h3>3. 채점</h3>
+    <p>[📋 제출·채점]에서 학생 목록을 보고, 주관식은 맞으면 체크합니다. 객관식은 자동으로 채점됩니다.</p>
+    <h3>4. 영상과 용량 주의</h3>
+    <ul>
+      <li>영상은 <b>10MB 이하, mp4 또는 webm</b>으로 올려 주세요. 긴 영상은 유튜브 링크를 권장합니다.</li>
+      <li>끝난 시험은 <b>시험 삭제</b>로 지우세요. 시험과 함께 영상도 지워집니다.</li>
+      <li>한 달에 한 번 Supabase의 <b>Usage</b>에서 사용량을 확인하세요. 80%를 넘으면 정리하세요.</li>
+    </ul>
+    <h3>5. 꼭 지켜 주세요</h3>
+    <ul>
+      <li>데이터베이스 비밀번호와 <b>service_role</b> 키는 누구에게도 알려 주지 마세요.</li>
+      <li>학생 링크는 시험 당일에만 보내세요.</li>
+    </ul>
+  </div>
+  <div class="man" id="manS" hidden>
+    <h3>시험 보는 방법</h3>
+    <ol>
+      <li>받은 링크를 열고 왼쪽 위에 <b>이름</b>을 적으세요.</li>
+      <li>문제를 읽고 답을 고르거나 적으세요.</li>
+      <li>헷갈리는 문제는 <b>⚠ 애매함</b>에 체크하세요.</li>
+      <li>다 풀면 맨 아래 <b>[시험 제출]</b>을 누르세요. 제출한 뒤에는 답을 바꿀 수 없습니다.</li>
+    </ol>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+'use strict';
+
+/* ================= 설정 ================= */
+const BUCKET = 'exam-media';
+const SCHEMA_VERSION = '1';
+const CFG_KEY = 'sueo-sb-config';
+const MAX_VIDEO = 10 * 1024 * 1024;
+
+const INSTALL_SQL = `-- 수어 시험 시스템 설치 SQL (한 번만 실행)
+create extension if not exists pgcrypto;
+
+create table if not exists public.settings (
+  key text primary key,
+  value text not null
+);
+insert into public.settings (key, value) values ('schema_version', '1')
+  on conflict (key) do nothing;
+
+create table if not exists public.exams (
+  id uuid primary key default gen_random_uuid(),
+  owner uuid not null default auth.uid(),
+  title text not null default '',
+  share_code text not null unique,
+  opens_at timestamptz,
+  is_open boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.questions (
+  id uuid primary key,
+  exam_id uuid not null references public.exams(id) on delete cascade,
+  position int not null default 0,
+  type text not null check (type in ('mc','essay')),
+  body text not null default '',
+  media jsonb not null default '{"kind":"none"}'::jsonb,
+  options jsonb not null default '[]'::jsonb,
+  answer_option text,
+  model_answer text not null default '',
+  media_paths text[] not null default '{}'
+);
+
+create table if not exists public.submissions (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references public.exams(id) on delete cascade,
+  name text not null,
+  answers jsonb not null default '[]'::jsonb,
+  scores jsonb not null default '{}'::jsonb,
+  submitted_at timestamptz not null default now(),
+  unique (exam_id, name)
+);
+
+create table if not exists public.bank_questions (
+  id uuid primary key default gen_random_uuid(),
+  owner uuid not null default auth.uid(),
+  type text not null check (type in ('mc','essay')),
+  body text not null default '',
+  media jsonb not null default '{"kind":"none"}'::jsonb,
+  options jsonb not null default '[]'::jsonb,
+  answer_option text,
+  model_answer text not null default '',
+  media_paths text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+-- 보안 규칙 (RLS)
+alter table public.settings enable row level security;
+alter table public.exams enable row level security;
+alter table public.questions enable row level security;
+alter table public.submissions enable row level security;
+alter table public.bank_questions enable row level security;
+
+drop policy if exists "settings read" on public.settings;
+create policy "settings read" on public.settings for select to anon, authenticated using (true);
+
+drop policy if exists "owner exams" on public.exams;
+create policy "owner exams" on public.exams for all to authenticated
+  using (owner = auth.uid()) with check (owner = auth.uid());
+
+drop policy if exists "owner questions" on public.questions;
+create policy "owner questions" on public.questions for all to authenticated
+  using (exists (select 1 from public.exams e where e.id = exam_id and e.owner = auth.uid()))
+  with check (exists (select 1 from public.exams e where e.id = exam_id and e.owner = auth.uid()));
+
+drop policy if exists "owner submissions" on public.submissions;
+create policy "owner submissions" on public.submissions for all to authenticated
+  using (exists (select 1 from public.exams e where e.id = exam_id and e.owner = auth.uid()))
+  with check (exists (select 1 from public.exams e where e.id = exam_id and e.owner = auth.uid()));
+
+drop policy if exists "owner bank" on public.bank_questions;
+create policy "owner bank" on public.bank_questions for all to authenticated
+  using (owner = auth.uid()) with check (owner = auth.uid());
+
+-- 수강생용 함수 (학생은 테이블을 직접 못 보고, 이 함수로만 접근)
+create or replace function public.get_public_exam(p_code text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare e public.exams%rowtype; result jsonb;
+begin
+  select * into e from public.exams where share_code = p_code;
+  if not found or not e.is_open then raise exception 'NOT_OPEN'; end if;
+  if e.opens_at is not null and e.opens_at > now() then raise exception 'NOT_STARTED'; end if;
+  select jsonb_build_object(
+    'id', e.id,
+    'title', e.title,
+    'questions', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', q.id, 'position', q.position, 'type', q.type, 'body', q.body, 'media', q.media,
+        'options', coalesce((
+          select jsonb_agg(jsonb_build_object('id', o.v->>'id', 'text', o.v->>'text', 'media', o.v->'media') order by o.n)
+          from jsonb_array_elements(q.options) with ordinality as o(v, n)
+        ), '[]'::jsonb)
+      ) order by q.position)
+      from public.questions q where q.exam_id = e.id
+    ), '[]'::jsonb)
+  ) into result;
+  return result;
+end $$;
+
+create or replace function public.submit_exam(p_code text, p_name text, p_answers jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare e public.exams%rowtype;
+begin
+  select * into e from public.exams where share_code = p_code;
+  if not found or not e.is_open then raise exception 'NOT_OPEN'; end if;
+  if e.opens_at is not null and e.opens_at > now() then raise exception 'NOT_STARTED'; end if;
+  if coalesce(btrim(p_name), '') = '' then raise exception 'NAME_REQUIRED'; end if;
+  begin
+    insert into public.submissions (exam_id, name, answers)
+    values (e.id, btrim(p_name), coalesce(p_answers, '[]'::jsonb));
+  exception when unique_violation then
+    raise exception 'ALREADY_SUBMITTED';
+  end;
+end $$;
+
+create or replace function public.media_is_open(p_name text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1 from public.questions q join public.exams e on e.id = q.exam_id
+    where q.media_paths @> array[p_name]
+      and e.is_open and (e.opens_at is null or e.opens_at <= now())
+  );
+$$;
+
+grant execute on function public.get_public_exam(text) to anon, authenticated;
+grant execute on function public.submit_exam(text, text, jsonb) to anon, authenticated;
+grant execute on function public.media_is_open(text) to anon, authenticated;
+
+-- 영상·사진 저장소 (비공개, 10MB 제한)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('exam-media', 'exam-media', false, 10485760,
+  array['image/jpeg','image/png','image/webp','video/mp4','video/webm'])
+on conflict (id) do update set public = false, file_size_limit = 10485760,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "owner upload media" on storage.objects;
+create policy "owner upload media" on storage.objects for insert to authenticated
+  with check (bucket_id = 'exam-media' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "owner read media" on storage.objects;
+create policy "owner read media" on storage.objects for select to authenticated
+  using (bucket_id = 'exam-media' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "owner delete media" on storage.objects;
+create policy "owner delete media" on storage.objects for delete to authenticated
+  using (bucket_id = 'exam-media' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "student read open media" on storage.objects;
+create policy "student read open media" on storage.objects for select to anon
+  using (bucket_id = 'exam-media' and public.media_is_open(name));
+`;
+
+/* ================= 공통 도구 ================= */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function newUuid(){
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map(x => x.toString(16).padStart(2,'0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+}
+const shortId = () => Math.random().toString(36).slice(2, 10);
+const makeCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+function toLocalInput(iso){
+  if (!iso) return '';
+  const d = new Date(iso), p = (n) => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function fromLocalInput(v){ return v ? new Date(v).toISOString() : null; }
+function ytId(url){
+  const s = (url || '').trim();
+  const m = s.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{11}$/.test(s) ? s : '';
+}
+function toast(msg, isErr){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = isErr ? 'err' : '';
+  t.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.style.display = 'none'; }, 3200);
+}
+function errText(e){ return (e && e.message) ? e.message : String(e); }
+
+/* ================= 상태 ================= */
+const params = new URLSearchParams(location.search);
+const isStudent = params.has('c');
+let cfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+let sb = null;          // 강사용 Supabase 연결
+let session = null;     // 강사 로그인 정보
+let exams = [];         // 내 시험 목록
+let cur = null;         // 지금 편집 중인 시험
+let bankCache = [];     // 문제은행 목록
+let stu = null;         // 수강생 상태
+
+/* ================= 화면 전환 ================= */
+function showOnly(id){
+  for (const s of ['setup','auth','teacher','student']) {
+    const el = $('#' + s);
+    if (el) el.hidden = (s !== id);
+  }
+}
+function showSetup(msg, needInstall){
+  showOnly('setup');
+  $('#btnSetting').hidden = true;
+  $('#btnLogout').hidden = true;
+  $('#who').textContent = '';
+  $('#cfgUrl').value = cfg ? cfg.url : '';
+  $('#cfgKey').value = cfg ? cfg.key : '';
+  $('#setupMsg').innerHTML = msg ? `<div class="${needInstall ? 'warnbox' : 'info'}">${esc(msg)}</div>` : '';
+  $('#installBox').hidden = !needInstall;
+  if (needInstall) $('#sqlView').textContent = INSTALL_SQL;
+}
+function showAuth(){
+  showOnly('auth');
+  $('#btnSetting').hidden = false;
+  $('#btnLogout').hidden = true;
+}
+function showTeacher(){
+  showOnly('teacher');
+  $('#btnSetting').hidden = false;
+  $('#btnLogout').hidden = false;
+  $('#who').textContent = session ? session.user.email : '';
+  refreshList();
+  renderMain();
+}
+
+/* ================= 연결 확인 ================= */
+async function checkSettings(){
+  const c = supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, storageKey: 'sueo-auth' } });
+  const { data, error } = await c.from('settings').select('value').eq('key', 'schema_version').maybeSingle();
+  if (error) {
+    const missing = error.code === '42P01' || error.code === 'PGRST205' || /schema cache|does not exist/i.test(error.message || '');
+    return { state: missing ? 'install' : 'error', message: error.message, client: c };
+  }
+  if (!data) return { state: 'install', client: c };
+  return { state: data.value === SCHEMA_VERSION ? 'ok' : 'version', client: c, value: data.value };
+}
+async function init(){
+  if (isStudent) return startStudent();
+  if (!cfg) return showSetup();
+  let r;
+  try { r = await checkSettings(); }
+  catch (e) { r = { state: 'error', message: errText(e) }; }
+  if (r.state === 'error') return showSetup('연결에 실패했습니다. 주소와 키를 다시 확인하세요. (' + (r.message || '') + ')', false);
+  if (r.state === 'install') return showSetup('설치가 필요합니다. 아래 SQL을 실행한 뒤 다시 [연결 확인]을 누르세요.', true);
+  sb = r.client;
+  if (r.state === 'version') toast('데이터베이스 버전이 앱과 다릅니다. 앱을 새로고침하거나 업데이트 안내를 확인하세요.', true);
+  const { data: { session: s } } = await sb.auth.getSession();
+  session = s;
+  if (!session) return showAuth();
+  showTeacher();
+}
+async function connect(){
+  const url = $('#cfgUrl').value.trim().replace(/\/$/, '');
+  const key = $('#cfgKey').value.trim();
+  if (!/^https:\/\/.+/.test(url) || !key) { $('#setupMsg').innerHTML = '<div class="warnbox">주소와 키를 모두 넣어 주세요. 주소는 https://로 시작합니다.</div>'; return; }
+  cfg = { url, key };
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  await init();
+}
+
+/* ================= 강사 로그인 ================= */
+async function login(){
+  const email = $('#authEmail').value.trim(), password = $('#authPw').value;
+  $('#authMsg').innerHTML = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { $('#authMsg').innerHTML = `<div class="warnbox">로그인 실패: ${esc(error.message)}</div>`; return; }
+  session = data.session;
+  showTeacher();
+}
+async function signup(){
+  const email = $('#authEmail').value.trim(), password = $('#authPw').value;
+  $('#authMsg').innerHTML = '';
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) { $('#authMsg').innerHTML = `<div class="warnbox">가입 실패: ${esc(error.message)}</div>`; return; }
+  if (data.session) { session = data.session; showTeacher(); return; }
+  $('#authMsg').innerHTML = '<div class="info">가입 메일을 보냈습니다. 메일의 인증 링크를 누른 뒤 로그인하세요.</div>';
+}
+async function logout(){
+  if (cur && cur.dirty && !confirm('저장하지 않은 내용이 있습니다. 저장하지 않고 로그아웃할까요?')) return;
+  await sb.auth.signOut();
+  session = null; cur = null; exams = [];
+  showAuth();
+}
+
+/* ================= 시험 목록 ================= */
+function examStatus(e){
+  if (!e.is_open) return ['닫힘', '#6b7280'];
+  if (e.opens_at && new Date(e.opens_at) > new Date()) return ['예정', '#b45309'];
+  return ['응시 중', '#15803d'];
+}
+async function refreshList(){
+  const { data, error } = await sb.from('exams').select('id,title,is_open,opens_at,created_at').order('created_at', { ascending: false });
+  if (error) { toast('목록을 불러오지 못했습니다: ' + error.message, true); return; }
+  exams = data || [];
+  $('#examList').innerHTML = exams.map(e => {
+    const [t, c] = examStatus(e);
+    const on = cur && cur.exam.id === e.id ? 'on' : '';
+    return `<button class="exam-item ${on}" data-pick="${e.id}"><b>${esc(e.title || '(제목 없음)')}</b><span class="badge" style="background:${c}">${t}</span></button>`;
+  }).join('') || '<p class="hint">아직 시험이 없습니다.</p>';
+}
+async function confirmLeave(){
+  if (!cur || !cur.dirty) return true;
+  return confirm('저장하지 않은 내용이 있습니다. 저장하지 않고 넘어갈까요?');
+}
+
+/* ================= 시험 불러오기 / 저장 ================= */
+function pathsOf(q){
+  const list = [q.media && q.media.path];
+  (q.options || []).forEach(o => list.push(o.media && o.media.path));
+  return [...new Set(list.filter(Boolean))];
+}
+function collectPaths(qs){ return [...new Set(qs.flatMap(pathsOf))]; }
+async function loadExam(id){
+  const [a, b] = await Promise.all([
+    sb.from('exams').select('*').eq('id', id).single(),
+    sb.from('questions').select('*').eq('exam_id', id).order('position')
+  ]);
+  if (a.error) throw a.error;
+  if (b.error) throw b.error;
+  const qs = b.data || [];
+  cur = { exam: a.data, questions: qs, oldPaths: collectPaths(qs), dirty: false, view: 'edit', qid: qs[0] ? qs[0].id : null, subs: [], subSel: null, bank: [] };
+}
+async function pickExam(id){
+  if (cur && cur.exam.id === id) return;
+  if (!(await confirmLeave())) return;
+  try { await loadExam(id); } catch (e) { toast('시험을 불러오지 못했습니다: ' + errText(e), true); return; }
+  renderMain();
+  refreshList();
+}
+async function newExam(){
+  if (!(await confirmLeave())) return;
+  const { data, error } = await sb.from('exams').insert({ title: '', share_code: makeCode(), is_open: false }).select().single();
+  if (error) { toast('새 시험을 만들지 못했습니다: ' + error.message, true); return; }
+  cur = { exam: data, questions: [], oldPaths: [], dirty: false, view: 'edit', qid: null, subs: [], subSel: null, bank: [] };
+  await refreshList();
+  renderMain();
+}
+async function saveExam(){
+  const ex = cur.exam;
+  const { error: e1 } = await sb.from('exams').upsert({
+    id: ex.id, title: ex.title || '', opens_at: ex.opens_at || null, is_open: !!ex.is_open,
+    share_code: ex.share_code, updated_at: new Date().toISOString()
+  });
+  if (e1) { toast('저장 실패: ' + e1.message, true); return false; }
+  const rows = cur.questions.map((q, i) => ({
+    id: q.id, exam_id: ex.id, position: i, type: q.type, body: q.body || '', media: q.media,
+    options: q.options || [], answer_option: q.answer_option || null, model_answer: q.model_answer || '',
+    media_paths: pathsOf(q)
+  }));
+  if (rows.length) {
+    const { error: e2 } = await sb.from('questions').upsert(rows);
+    if (e2) { toast('문항 저장 실패: ' + e2.message, true); return false; }
+  }
+  let del = sb.from('questions').delete().eq('exam_id', ex.id);
+  if (cur.questions.length) del = del.not('id', 'in', `(${cur.questions.map(q => q.id).join(',')})`);
+  const { error: e3 } = await del;
+  if (e3) { toast('삭제 정리 실패: ' + e3.message, true); return false; }
+  const now = collectPaths(cur.questions);
+  const orphans = cur.oldPaths.filter(p => !now.includes(p));
+  cur.oldPaths = now;
+  cur.dirty = false;
+  await removeUnusedFiles(orphans);
+  refreshList();
+  toast('저장했습니다.');
+  return true;
+}
+// 아무 시험도 쓰지 않는 파일만 저장소에서 지웁니다 (문제은행·다른 시험이 쓰는 파일은 남김)
+async function removeUnusedFiles(paths){
+  if (!paths.length) return;
+  const [a, b] = await Promise.all([
+    sb.from('questions').select('media_paths').overlaps('media_paths', paths),
+    sb.from('bank_questions').select('media_paths').overlaps('media_paths', paths)
+  ]);
+  const used = new Set([...(a.data || []), ...(b.data || [])].flatMap(r => r.media_paths || []));
+  const del = paths.filter(p => !used.has(p));
+  if (del.length) await sb.storage.from(BUCKET).remove(del);
+}
+function examProblems(){
+  const p = [];
+  if (!(cur.exam.title || '').trim()) p.push('시험 제목이 없습니다.');
+  if (!cur.questions.length) p.push('문항이 없습니다.');
+  cur.questions.forEach((q, i) => {
+    const no = i + 1;
+    if (!(q.body || '').trim() && (!q.media || q.media.kind === 'none')) p.push(`${no}번: 문제 글이나 그림이 없습니다.`);
+    if (q.type === 'mc') {
+      if ((q.options || []).length < 2) p.push(`${no}번: 보기가 2개 이상 필요합니다.`);
+      if (!q.answer_option) p.push(`${no}번: 정답이 지정되지 않았습니다.`);
+    }
+  });
+  return p;
+}
+async function copyLink(){
+  if (cur.dirty) {
+    if (!confirm('저장하지 않은 내용이 있습니다. 저장한 뒤 링크를 만들까요?')) return;
+    if (!(await saveExam())) return;
+  }
+  const probs = examProblems();
+  if (probs.length && !confirm('배포 전에 확인하세요:\n- ' + probs.slice(0, 8).join('\n- ') + '\n\n그래도 링크를 복사할까요?')) return;
+  const url = `${location.origin}${location.pathname}?p=${encodeURIComponent(cfg.url)}&k=${encodeURIComponent(cfg.key)}&c=${encodeURIComponent(cur.exam.share_code)}`;
+  try { await navigator.clipboard.writeText(url); toast('링크를 복사했습니다. 시험 당일 학생에게 보내세요.'); }
+  catch (e) { prompt('아래 링크를 복사해서 학생에게 보내세요.', url); }
+}
+async function duplicateExam(){
+  if (!(await confirmLeave())) return;
+  const src = cur.exam;
+  const { data: ex, error } = await sb.from('exams').insert({ title: (src.title || '시험') + ' (복제)', share_code: makeCode(), is_open: false }).select().single();
+  if (error) { toast('복제 실패: ' + error.message, true); return; }
+  const qs = cur.questions.map((q, i) => ({
+    id: newUuid(), exam_id: ex.id, position: i, type: q.type, body: q.body, media: q.media,
+    options: q.options, answer_option: q.answer_option, model_answer: q.model_answer, media_paths: pathsOf(q)
+  }));
+  if (qs.length) {
+    const { error: e2 } = await sb.from('questions').insert(qs);
+    if (e2) { toast('문항 복제 실패: ' + e2.message, true); return; }
+  }
+  await loadExam(ex.id);
+  await refreshList();
+  renderMain();
+  toast('복제본을 만들었습니다.');
+}
+async function deleteExam(){
+  if (!confirm('이 시험과 제출 기록, 영상을 모두 지울까요?\n되돌릴 수 없습니다.')) return;
+  const paths = collectPaths(cur.questions);
+  const { error } = await sb.from('exams').delete().eq('id', cur.exam.id);
+  if (error) { toast('삭제 실패: ' + error.message, true); return; }
+  await removeUnusedFiles(paths);
+  cur = null;
+  await refreshList();
+  renderMain();
+  toast('시험을 삭제했습니다.');
+}
+
+/* ================= 파일(사진·영상) ================= */
+function shrinkImage(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 1280 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const isPng = file.type === 'image/png';
+      c.toBlob(b => b ? resolve({ blob: b, ext: isPng ? 'png' : 'jpg', type: isPng ? 'image/png' : 'image/jpeg' }) : reject(new Error('이미지 변환 실패')),
+        isPng ? 'image/png' : 'image/jpeg', 0.85);
+    };
+    img.onerror = () => reject(new Error('이미지를 읽을 수 없습니다.'));
+    img.src = url;
+  });
+}
+async function uploadFile(file, kind){
+  let blob, ext, type;
+  if (kind === 'image') {
+    const r = await shrinkImage(file);
+    blob = r.blob; ext = r.ext; type = r.type;
+  } else {
+    if (file.size > MAX_VIDEO) throw new Error('영상은 10MB 이하만 올릴 수 있습니다. 더 큰 영상은 유튜브 링크를 사용하세요.');
+    ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!['mp4', 'webm'].includes(ext)) throw new Error('영상은 mp4 또는 webm 파일만 올릴 수 있습니다.');
+    blob = file; type = 'video/' + ext;
+  }
+  const path = `${session.user.id}/${newUuid()}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+// 미디어 주소는 비공개이므로, 잠깐 쓸 수 있는 주소를 받아서 화면에 넣습니다
+async function hydrate(root, client){
+  const els = [...root.querySelectorAll('[data-mpath]')];
+  if (!els.length) return;
+  const paths = [...new Set(els.map(e => e.dataset.mpath))];
+  const { data, error } = await client.storage.from(BUCKET).createSignedUrls(paths, 3600);
+  if (error || !data) return;
+  const map = {};
+  data.forEach(d => { if (d.signedUrl) map[d.path] = d.signedUrl; });
+  els.forEach(e => { const u = map[e.dataset.mpath]; if (u) e.src = u; });
+}
+function previewHTML(m, cls){
+  const c = cls || 'preview';
+  if (!m) return '';
+  if (m.kind === 'image' && m.path) return `<img class="media ${c}" data-mpath="${esc(m.path)}" alt="">`;
+  if (m.kind === 'video' && m.path) return `<video class="media ${c}" controls data-mpath="${esc(m.path)}"></video>`;
+  if (m.kind === 'youtube' && m.id) return `<div class="yt ${c}"><iframe src="https://www.youtube.com/embed/${esc(m.id)}" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
+  return '';
+}
+
+/* ================= 강사 화면: 그리기 ================= */
+function renderMain(){
+  const main = $('#tMain');
+  if (!cur) { main.innerHTML = '<p class="hint">왼쪽에서 시험을 고르거나 새 시험을 만드세요.</p>'; return; }
+  if (cur.view === 'subs') main.innerHTML = renderSubs();
+  else if (cur.view === 'subDetail') main.innerHTML = renderSubDetail();
+  else if (cur.view === 'bank') main.innerHTML = renderBank();
+  else main.innerHTML = renderEdit();
+  hydrate(main, sb);
+}
+function headerBar(){
+  return `
+    <div class="row between wrap">
+      <h2 class="h2">${esc(cur.exam.title || '(제목 없음)')} ${cur.dirty ? '<span class="badge" style="background:#b45309">저장 안 됨</span>' : ''}</h2>
+      <div class="row wrap">
+        <button class="btn btn-primary" data-act="save">💾 저장</button>
+        <button class="btn" data-act="link">🔗 링크 복사</button>
+        <button class="btn" data-act="subs">📋 제출·채점</button>
+      </div>
+    </div>`;
+}
+function renderEdit(){
+  const ex = cur.exam;
+  const sel = cur.questions.find(q => q.id === cur.qid) || null;
+  const grid = cur.questions.map((q, i) =>
+    `<button class="qnum ${q.type === 'essay' ? 'essay' : ''} ${q.id === cur.qid ? 'current' : ''}" data-qsel="${q.id}">${i + 1}</button>`).join('');
+  return `
+    ${headerBar()}
+    <div class="panel-soft">
+      <label class="lbl" style="margin-top:0">시험 제목</label>
+      <input class="input" data-ex="title" value="${esc(ex.title)}" placeholder="예) 한국수어 기초 1단원 시험">
+      <div class="row wrap" style="margin-top:10px">
+        <div><label class="lbl" style="margin-top:0">응시 시작 시각 (비우면 바로 시작)</label>
+          <input class="input" type="datetime-local" data-ex="opens" value="${toLocalInput(ex.opens_at)}"></div>
+        <label class="row" style="margin-top:22px"><input type="checkbox" data-ex="open" ${ex.is_open ? 'checked' : ''}> 응시 열기</label>
+      </div>
+      <div class="row wrap" style="margin-top:10px">
+        <span class="hint">시험 코드: <b>${esc(ex.share_code)}</b></span>
+        <button class="btn small" data-act="dup">복제</button>
+        <button class="btn small btn-danger" data-act="del">시험 삭제</button>
+      </div>
+    </div>
+    <div class="split">
+      <div>
+        <div class="grid">${grid}</div>
+        <div class="row wrap" style="margin-top:10px">
+          <button class="btn small" data-act="addQ" data-type="mc">+ 객관식</button>
+          <button class="btn small" data-act="addQ" data-type="essay">+ 주관식</button>
+        </div>
+        <button class="btn small wide" style="margin-top:10px" data-act="bank">🗂 문제은행 열기</button>
+      </div>
+      <div>${sel ? questionEditor(sel) : '<p class="hint">왼쪽에서 문항을 고르거나 새로 추가하세요.</p>'}</div>
+    </div>`;
+}
+function mediaEditorHTML(m, qid, oid){
+  const kinds = [['none','없음'],['image','사진'],['video','동영상'],['youtube','유튜브']];
+  const cur2 = m || { kind: 'none' };
+  const attrs = `data-qid="${qid}" data-oid="${oid || ''}"`;
+  let extra = '';
+  if (cur2.kind === 'image' || cur2.kind === 'video') {
+    extra += `<label class="btn small">${cur2.kind === 'image' ? '사진 파일 선택' : '동영상 파일 선택 (10MB 이하, mp4·webm)'}
+      <input type="file" style="display:none" data-m="file" ${attrs} accept="${cur2.kind === 'image' ? 'image/*' : 'video/mp4,video/webm'}"></label>`;
+  }
+  if (cur2.kind === 'youtube') {
+    extra += `<input class="input small" data-m="yt" ${attrs} placeholder="유튜브 주소 붙여넣기" value="${esc(cur2.id ? 'https://youtu.be/' + cur2.id : '')}">`;
+  }
+  return `<div class="media-ed">
+      <select class="input small" data-m="kind" ${attrs}>
+        ${kinds.map(([v, t]) => `<option value="${v}" ${v === cur2.kind ? 'selected' : ''}>${t}</option>`).join('')}
+      </select>
+      ${extra}
+      ${previewHTML(cur2, 'preview')}
+    </div>`;
+}
+function questionEditor(q){
+  const idx = cur.questions.indexOf(q);
+  const optRows = (q.options || []).map((o, i) => `
+    <div class="opt-ed">
+      <div class="row between wrap">
+        <label class="row"><input type="radio" name="ans" data-ans="1" value="${o.id}" ${q.answer_option === o.id ? 'checked' : ''}> <b>정답으로 지정</b></label>
+        <div class="row"><b>${i + 1}번 보기</b> <button class="btn small btn-danger" data-act="delOpt" data-oid="${o.id}">삭제</button></div>
+      </div>
+      <input class="input" data-o="text" data-oid="${o.id}" value="${esc(o.text)}" placeholder="보기 글 (한글 가능)" style="margin-top:8px">
+      ${mediaEditorHTML(o.media, q.id, o.id)}
+    </div>`).join('');
+  const body = q.type === 'mc'
+    ? `<h3 class="h3">보기 (${(q.options || []).length}개)</h3>${optRows}
+       <div class="row wrap"><button class="btn" data-act="addOpt">+ 보기 추가</button></div>
+       <p class="hint">정답 보기를 하나 고르면 자동 채점됩니다.</p>`
+    : `<label class="lbl">모범 답안 / 채점 참고 (선택)</label>
+       <textarea class="input" rows="3" data-q="model" placeholder="채점할 때 참고할 내용">${esc(q.model_answer)}</textarea>`;
+  return `
+    <div class="row between wrap">
+      <h2 class="h2">${idx + 1}번 · ${q.type === 'mc' ? '객관식' : '주관식'}</h2>
+      <div class="row wrap">
+        <button class="btn" data-act="upQ">▲</button>
+        <button class="btn" data-act="downQ">▼</button>
+        <button class="btn" data-act="bankAdd">문제은행에 담기</button>
+        <button class="btn btn-danger" data-act="delQ">삭제</button>
+      </div>
+    </div>
+    <label class="lbl">문제 내용 (한글 가능)</label>
+    <textarea class="input" rows="3" data-q="body" placeholder="예) 다음 수어의 뜻으로 알맞은 것은?">${esc(q.body)}</textarea>
+    <label class="lbl">문제 그림·동영상 (선택)</label>
+    ${mediaEditorHTML(q.media, q.id, '')}
+    ${body}`;
+}
+function scoreOf(sub){
+  let got = 0, total = 0;
+  cur.questions.forEach(q => {
+    if (q.type === 'mc') {
+      if (q.answer_option) {
+        total++;
+        const a = (sub.answers || []).find(x => x.qid === q.id);
+        if (a && a.choice === q.answer_option) got++;
+      }
+    } else {
+      total++;
+      if (sub.scores && sub.scores[q.id]) got++;
+    }
+  });
+  return { got, total };
+}
+function renderSubs(){
+  const rows = cur.subs.map(s => {
+    const sc = scoreOf(s);
+    return `<tr><td>${esc(s.name)}</td><td>${new Date(s.submitted_at).toLocaleString('ko-KR')}</td>
+      <td>${sc.got} / ${sc.total}</td><td><button class="btn small" data-sid="${s.id}">보기</button></td></tr>`;
+  }).join('');
+  return `
+    ${headerBar()}
+    <div class="row between wrap"><h3 class="h3">제출 목록 (${cur.subs.length}명)</h3>
+      <button class="btn small" data-act="back">← 편집으로</button></div>
+    <p class="hint">객관식은 자동 채점, 주관식은 상세 화면에서 맞으면 체크합니다.</p>
+    ${cur.subs.length ? `<table class="res"><thead><tr><th>이름</th><th>제출 시각</th><th>점수</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      : '<p class="hint">아직 제출한 학생이 없습니다.</p>'}`;
+}
+function renderSubDetail(){
+  const s = cur.subs.find(x => x.id === cur.subSel);
+  if (!s) { cur.view = 'subs'; return renderSubs(); }
+  const sc = scoreOf(s);
+  const rows = cur.questions.map((q, i) => {
+    const a = (s.answers || []).find(x => x.qid === q.id) || {};
+    if (q.type === 'mc') {
+      const pick = (q.options || []).findIndex(o => o.id === a.choice);
+      const ok = q.answer_option && a.choice === q.answer_option;
+      const mark = !q.answer_option ? '<span class="hint">정답 미지정</span>' : (ok ? '<span class="ok">정답</span>' : '<span class="ng">오답</span>');
+      return `<div class="opt-ed"><b>${i + 1}번 · 객관식</b> ${a.flag ? '<span class="ng">⚠ 애매함</span>' : ''}
+        <p>학생 답: ${pick >= 0 ? (pick + 1) + '번' : '미응답'} · 정답: ${q.answer_option ? ((q.options || []).findIndex(o => o.id === q.answer_option) + 1) + '번' : '-'} · ${mark}</p></div>`;
+    }
+    const txt = (a.text || '').trim();
+    return `<div class="opt-ed"><b>${i + 1}번 · 주관식</b> ${a.flag ? '<span class="ng">⚠ 애매함</span>' : ''}
+      <p class="essay-cell">${txt ? esc(a.text) : '미응답'}</p>
+      ${q.model_answer ? `<p class="hint">모범 답안: ${esc(q.model_answer)}</p>` : ''}
+      <label class="row"><input type="checkbox" data-gq="${q.id}" ${s.scores && s.scores[q.id] ? 'checked' : ''}> 정답 처리 (1점)</label></div>`;
+  }).join('');
+  return `
+    ${headerBar()}
+    <div class="row between wrap">
+      <h3 class="h3">${esc(s.name)} · 제출 ${new Date(s.submitted_at).toLocaleString('ko-KR')}</h3>
+      <div class="row wrap"><button class="btn small" data-act="back">← 목록으로</button>
+        <button class="btn small btn-primary" data-act="gradeSave">점수 저장</button></div>
+    </div>
+    <p class="h3">총점 <span id="gTotal">${sc.got} / ${sc.total}</span></p>
+    ${rows}`;
+}
+async function loadSubs(){
+  const { data, error } = await sb.from('submissions').select('*').eq('exam_id', cur.exam.id).order('submitted_at');
+  if (error) { toast('제출 목록을 불러오지 못했습니다: ' + error.message, true); cur.subs = []; return; }
+  cur.subs = data || [];
+}
+async function loadBank(){
+  const { data, error } = await sb.from('bank_questions').select('*').order('created_at', { ascending: false });
+  if (error) { toast('문제은행을 불러오지 못했습니다: ' + error.message, true); bankCache = []; return; }
+  bankCache = data || [];
+}
+function renderBank(){
+  const items = bankCache.map(b => {
+    const preview = (b.body || '').trim().slice(0, 40) || ((b.media && b.media.kind !== 'none') ? '(그림·영상 문항)' : '(글 없음)');
+    return `<div class="opt-ed row between wrap">
+      <div><b>${b.type === 'mc' ? '객관식' : '주관식'}</b> · ${esc(preview)}</div>
+      <div class="row wrap"><button class="btn small" data-bid="${b.id}" data-act="bankUse">현재 시험에 추가</button>
+        <button class="btn small btn-danger" data-bid="${b.id}" data-act="bankDel">삭제</button></div></div>`;
+  }).join('');
+  return `
+    ${headerBar()}
+    <div class="row between wrap"><h3 class="h3">🗂 문제은행</h3><button class="btn small" data-act="back">← 편집으로</button></div>
+    <p class="hint">문항 편집 화면의 [문제은행에 담기]로 문항을 모을 수 있습니다. 추가한 문항은 저장 버튼을 눌러야 시험에 반영됩니다.</p>
+    ${items || '<p class="hint">문제은행이 비어 있습니다.</p>'}`;
+}
+
+/* ================= 강사 화면: 이벤트 ================= */
+function getTarget(qid, oid){
+  const q = cur.questions.find(x => x.id === qid);
+  if (!q) return null;
+  if (!oid) return { q, obj: q };
+  const o = (q.options || []).find(x => x.id === oid);
+  return o ? { q, obj: o } : null;
+}
+function markDirty(){ cur.dirty = true; }
+async function act(name, el){
+  switch (name) {
+    case 'newExam': return newExam();
+    case 'save': await saveExam(); return renderMain();
+    case 'link': return copyLink();
+    case 'subs': await loadSubs(); cur.view = 'subs'; return renderMain();
+    case 'back': cur.view = 'edit'; return renderMain();
+    case 'dup': return duplicateExam();
+    case 'del': return deleteExam();
+    case 'addQ': {
+      const type = el.dataset.type;
+      const q = { id: newUuid(), type, body: '', media: { kind: 'none' }, options: [], answer_option: null, model_answer: '' };
+      if (type === 'mc') for (let i = 0; i < 4; i++) q.options.push({ id: shortId(), text: '', media: { kind: 'none' } });
+      cur.questions.push(q); cur.qid = q.id; markDirty();
+      return renderMain();
+    }
+    case 'upQ': case 'downQ': {
+      const i = cur.questions.findIndex(q => q.id === cur.qid);
+      const j = name === 'upQ' ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= cur.questions.length) return;
+      [cur.questions[i], cur.questions[j]] = [cur.questions[j], cur.questions[i]];
+      markDirty(); return renderMain();
+    }
+    case 'delQ': {
+      if (!confirm('이 문항을 삭제할까요?')) return;
+      const i = cur.questions.findIndex(q => q.id === cur.qid);
+      if (i < 0) return;
+      cur.questions.splice(i, 1);
+      cur.qid = cur.questions[0] ? cur.questions[0].id : null;
+      markDirty(); return renderMain();
+    }
+    case 'addOpt': {
+      const q = cur.questions.find(x => x.id === cur.qid);
+      if (!q) return;
+      q.options.push({ id: shortId(), text: '', media: { kind: 'none' } });
+      markDirty(); return renderMain();
+    }
+    case 'delOpt': {
+      const q = cur.questions.find(x => x.id === cur.qid);
+      if (!q) return;
+      if (q.answer_option === el.dataset.oid) q.answer_option = null;
+      q.options = q.options.filter(o => o.id !== el.dataset.oid);
+      markDirty(); return renderMain();
+    }
+    case 'bank': await loadBank(); cur.view = 'bank'; return renderMain();
+    case 'bankAdd': {
+      const q = cur.questions.find(x => x.id === cur.qid);
+      if (!q) return;
+      const { error } = await sb.from('bank_questions').insert({
+        type: q.type, body: q.body || '', media: q.media, options: q.options || [],
+        answer_option: q.answer_option || null, model_answer: q.model_answer || '', media_paths: pathsOf(q)
+      });
+      if (error) return toast('문제은행 저장 실패: ' + error.message, true);
+      toast('문제은행에 담았습니다.');
+      return;
+    }
+    case 'bankUse': {
+      const b = bankCache.find(x => x.id === el.dataset.bid);
+      if (!b) return;
+      const q = { id: newUuid(), type: b.type, body: b.body, media: b.media, options: b.options,
+        answer_option: b.answer_option, model_answer: b.model_answer };
+      cur.questions.push(q); cur.qid = q.id; cur.view = 'edit'; markDirty();
+      return renderMain();
+    }
+    case 'bankDel': {
+      if (!confirm('문제은행에서 이 문항을 지울까요?')) return;
+      const b = bankCache.find(x => x.id === el.dataset.bid);
+      const { error } = await sb.from('bank_questions').delete().eq('id', el.dataset.bid);
+      if (error) return toast('삭제 실패: ' + error.message, true);
+      if (b) await removeUnusedFiles(b.media_paths || []);
+      await loadBank();
+      return renderMain();
+    }
+    case 'gradeSave': {
+      const s = cur.subs.find(x => x.id === cur.subSel);
+      if (!s) return;
+      const { error } = await sb.from('submissions').update({ scores: s.scores || {} }).eq('id', s.id);
+      if (error) return toast('점수 저장 실패: ' + error.message, true);
+      toast('점수를 저장했습니다.');
+      return;
+    }
+  }
+}
+const teacherEl = $('#teacher');
+teacherEl.addEventListener('click', (e) => {
+  const t = e.target;
+  let b;
+  if ((b = t.closest('[data-pick]'))) return pickExam(b.dataset.pick);
+  if ((b = t.closest('[data-qsel]'))) { cur.qid = b.dataset.qsel; cur.view = 'edit'; return renderMain(); }
+  if ((b = t.closest('[data-sid]'))) { cur.subSel = b.dataset.sid; cur.view = 'subDetail'; return renderMain(); }
+  if ((b = t.closest('[data-act]'))) return act(b.dataset.act, b);
+});
+teacherEl.addEventListener('input', (e) => {
+  if (!cur) return;
+  const t = e.target;
+  if (t.dataset.ex === 'title') { cur.exam.title = t.value; markDirty(); }
+  else if (t.dataset.q === 'body') { const q = cur.questions.find(x => x.id === cur.qid); if (q) { q.body = t.value; markDirty(); } }
+  else if (t.dataset.q === 'model') { const q = cur.questions.find(x => x.id === cur.qid); if (q) { q.model_answer = t.value; markDirty(); } }
+  else if (t.dataset.o === 'text') { const tg = getTarget(cur.qid, t.dataset.oid); if (tg) { tg.obj.text = t.value; markDirty(); } }
+  else if (t.dataset.m === 'yt') {
+    const tg = getTarget(cur.qid, t.dataset.oid); if (!tg) return;
+    tg.obj.media = { kind: 'youtube', id: ytId(t.value) }; markDirty();
+  }
+});
+teacherEl.addEventListener('change', async (e) => {
+  if (!cur) return;
+  const t = e.target;
+  if (t.dataset.ex === 'opens') { cur.exam.opens_at = fromLocalInput(t.value); markDirty(); return; }
+  if (t.dataset.ex === 'open') { cur.exam.is_open = t.checked; markDirty(); return renderMain(); }
+  if (t.dataset.ans !== undefined) {
+    const q = cur.questions.find(x => x.id === cur.qid); if (q) { q.answer_option = t.value; markDirty(); }
+    return;
+  }
+  if (t.dataset.gq !== undefined) {
+    const s = cur.subs.find(x => x.id === cur.subSel); if (!s) return;
+    s.scores = s.scores || {};
+    s.scores[t.dataset.gq] = t.checked;
+    const sc = scoreOf(s);
+    const tot = document.getElementById('gTotal'); if (tot) tot.textContent = sc.got + ' / ' + sc.total;
+    return;
+  }
+  if (t.dataset.m === 'kind') {
+    const tg = getTarget(cur.qid, t.dataset.oid); if (!tg) return;
+    tg.obj.media = { kind: t.value }; markDirty(); return renderMain();
+  }
+  if (t.dataset.m === 'file') {
+    const tg = getTarget(cur.qid, t.dataset.oid); const f = t.files[0];
+    if (!tg || !f) return;
+    const kind = tg.obj.media && tg.obj.media.kind;
+    try {
+      toast('올리는 중입니다…');
+      const path = await uploadFile(f, kind);
+      tg.obj.media = { kind, path };
+      markDirty(); renderMain();
+      toast('올렸습니다. [저장]을 눌러 주세요.');
+    } catch (err) { toast(errText(err), true); }
+    return;
+  }
+});
+
+/* ================= 수강생 ================= */
+function sIsAnswered(q, a){
+  if (!a) return false;
+  return q.type === 'mc' ? !!a.sel : !!(a.text || '').trim();
+}
+function saveStu(){
+  localStorage.setItem('sueo-stu-' + stu.code, JSON.stringify({ name: stu.name, ans: stu.ans, submitted: stu.submitted }));
+}
+function renderStuGrid(){
+  $('#sGrid').innerHTML = stu.exam.questions.map((q, i) => {
+    const a = stu.ans[q.id];
+    const cls = (a && a.flag) ? 'flagged' : (sIsAnswered(q, a) ? 'answered' : '');
+    return `<button class="qnum ${q.type === 'essay' ? 'essay' : ''} ${cls} ${i === stu.idx ? 'current' : ''}" data-si="${i}">${i + 1}${(a && a.flag) ? '<span class="flag">⚠</span>' : ''}</button>`;
+  }).join('');
+}
+function renderStuMain(){
+  const main = $('#sMain');
+  if (stu.submitted) {
+    main.innerHTML = `<div class="center"><h2 class="h2">제출이 완료되었습니다</h2>
+      <p>답안이 강사에게 전달되었습니다. 수고하셨습니다.</p>
+      <p class="hint">이 기기에서는 다시 제출할 수 없습니다.</p></div>`;
+    return;
+  }
+  const qs = stu.exam.questions;
+  const q = qs[stu.idx];
+  const a = stu.ans[q.id] || { sel: null, text: '', flag: false };
+  const body = q.type === 'mc'
+    ? `<div class="opts-s">${q.options.map((o, i) => `
+        <div class="opt-s ${a.sel === o.id ? 'on' : ''}" data-oid="${o.id}" role="radio" aria-checked="${a.sel === o.id}" tabindex="0">
+          <div class="opt-num">${i + 1}</div>
+          <div class="opt-body">${o.text ? `<div class="opt-text">${esc(o.text)}</div>` : ''}${previewHTML(o.media, 'opt-media')}</div>
+        </div>`).join('')}</div>`
+    : `<textarea class="input" rows="8" data-essay="1" placeholder="답을 입력하세요">${esc(a.text)}</textarea>`;
+  main.innerHTML = `
+    <div class="row between wrap">
+      <h2 class="h2">${stu.idx + 1}번 <span class="hint">/ 전체 ${qs.length}문항</span></h2>
+      <label class="flag-chk"><input type="checkbox" id="flagBox" ${a.flag ? 'checked' : ''}> ⚠ 애매함 · 나중에 다시 보기</label>
+    </div>
+    ${q.body ? `<p class="qtext">${esc(q.body)}</p>` : ''}
+    ${previewHTML(q.media, 'q-media')}
+    ${body}
+    <div class="row between wrap" style="margin-top:20px">
+      <button class="btn" data-nav="-1" ${stu.idx === 0 ? 'disabled' : ''}>◀ 이전</button>
+      ${stu.idx < qs.length - 1 ? '<button class="btn btn-primary" data-nav="1">다음 ▶</button>' : ''}
+    </div>
+    <div class="center" style="margin-top:24px;padding-top:16px;border-top:1px dashed var(--line)">
+      <button class="btn btn-primary" data-submit="1" style="padding:12px 28px;font-size:16px">시험 제출</button>
+    </div>`;
+  hydrate(main, stu.client);
+}
+function renderStudent(){
+  renderStuGrid();
+  renderStuMain();
+}
+async function startStudent(){
+  showOnly('student');
+  $('#btnSetting').hidden = true;
+  $('#btnLogout').hidden = true;
+  const p = params.get('p'), k = params.get('k'), c = params.get('c');
+  const box = $('#sMain');
+  if (!p || !k || !c) { box.innerHTML = '<div class="center"><h2 class="h2">링크가 올바르지 않습니다</h2><p class="hint">강사에게 링크를 다시 받아 주세요.</p></div>'; return; }
+  const client = supabase.createClient(p, k, { auth: { persistSession: false } });
+  const { data, error } = await client.rpc('get_public_exam', { p_code: c });
+  if (error) {
+    const m = error.message || '';
+    let msg = '시험을 불러오지 못했습니다. 링크를 다시 확인해 주세요.';
+    if (/NOT_STARTED/.test(m)) msg = '아직 시작 전입니다. 강사에게 시작 시간을 확인하세요.';
+    else if (/NOT_OPEN/.test(m)) msg = '지금은 응시할 수 없는 시험입니다.';
+    box.innerHTML = `<div class="center"><h2 class="h2">응시할 수 없습니다</h2><p class="hint">${esc(msg)}</p></div>`;
+    return;
+  }
+  const saved = JSON.parse(localStorage.getItem('sueo-stu-' + c) || 'null') || {};
+  stu = { client, code: c, exam: data, idx: 0, name: saved.name || '', ans: saved.ans || {}, submitted: !!saved.submitted };
+  document.title = data.title || '시험';
+  $('#sName').value = stu.name;
+  renderStudent();
+}
+const studentEl = $('#student');
+studentEl.addEventListener('click', async (e) => {
+  if (!stu) return;
+  const t = e.target;
+  if (t.closest('video,iframe,audio')) return;
+  let b;
+  if ((b = t.closest('[data-si]'))) { stu.idx = +b.dataset.si; renderStudent(); return; }
+  const opt = t.closest('.opt-s');
+  if (opt) {
+    if (stu.submitted) return;
+    const q = stu.exam.questions[stu.idx];
+    stu.ans[q.id] = Object.assign({ sel: null, text: '', flag: false }, stu.ans[q.id], { sel: opt.dataset.oid });
+    saveStu(); renderStudent(); return;
+  }
+  if ((b = t.closest('[data-nav]'))) { stu.idx += +b.dataset.nav; renderStudent(); window.scrollTo(0, 0); return; }
+  if (t.closest('[data-submit]')) { return submitStu(); }
+});
+studentEl.addEventListener('input', (e) => {
+  if (!stu) return;
+  if (e.target.matches('[data-essay]')) {
+    const q = stu.exam.questions[stu.idx];
+    stu.ans[q.id] = Object.assign({ sel: null, text: '', flag: false }, stu.ans[q.id], { text: e.target.value });
+    saveStu(); renderStuGrid();
+  }
+});
+studentEl.addEventListener('change', (e) => {
+  if (!stu) return;
+  if (e.target.id === 'flagBox') {
+    const q = stu.exam.questions[stu.idx];
+    stu.ans[q.id] = Object.assign({ sel: null, text: '', flag: false }, stu.ans[q.id], { flag: e.target.checked });
+    saveStu(); renderStuGrid();
+  }
+});
+$('#sName').addEventListener('input', (e) => { if (stu) { stu.name = e.target.value; saveStu(); } });
+async function submitStu(){
+  const name = ($('#sName').value || '').trim();
+  if (!name) { alert('이름을 입력한 뒤 제출해 주세요.'); $('#sName').focus(); return; }
+  const unanswered = stu.exam.questions.filter(q => !sIsAnswered(q, stu.ans[q.id])).length;
+  const msg = (unanswered ? `아직 답하지 않은 문항이 ${unanswered}개 있습니다.\n\n` : '') + '제출하면 답을 바꿀 수 없습니다. 제출할까요?';
+  if (!confirm(msg)) return;
+  stu.name = name;
+  const answers = stu.exam.questions.map(q => {
+    const a = stu.ans[q.id] || {};
+    return { qid: q.id, choice: a.sel || null, text: a.text || '', flag: !!a.flag };
+  });
+  const { error } = await stu.client.rpc('submit_exam', { p_code: stu.code, p_name: name, p_answers: answers });
+  if (error) {
+    if (/ALREADY_SUBMITTED/.test(error.message)) { alert('이미 제출한 이름입니다. 같은 이름으로는 한 번만 제출할 수 있습니다.'); return; }
+    if (/NAME_REQUIRED/.test(error.message)) { alert('이름을 입력해 주세요.'); return; }
+    if (/NOT_OPEN|NOT_STARTED/.test(error.message)) { alert('지금은 제출할 수 없는 시험입니다.'); return; }
+    alert('제출에 실패했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요.\n' + error.message);
+    return;
+  }
+  stu.submitted = true;
+  saveStu();
+  renderStuMain();
+}
+
+/* ================= 공통 버튼 ================= */
+$('#btnConnect').onclick = connect;
+$('#btnCopySql').onclick = async () => {
+  try { await navigator.clipboard.writeText(INSTALL_SQL); toast('설치 SQL을 복사했습니다. SQL Editor에 붙여넣고 Run을 누르세요.'); }
+  catch (e) { toast('복사하지 못했습니다. 아래 상자의 글을 직접 복사하세요.', true); }
+};
+$('#btnLogin').onclick = login;
+$('#btnSignup').onclick = signup;
+$('#btnLogout').onclick = logout;
+$('#btnSetting').onclick = () => showSetup('', false);
+$('#btnManual').onclick = () => {
+  $('#manT').hidden = isStudent;
+  $('#manS').hidden = !isStudent;
+  $('#manualDlg').showModal();
+};
+$('#btnManualClose').onclick = () => $('#manualDlg').close();
+window.addEventListener('beforeunload', (e) => {
+  if (cur && cur.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ================= 시작 ================= */
+init();
+})();
+</script>
+</body>
+</html>
