@@ -91,6 +91,23 @@ dialog#manualDlg::backdrop{background:rgba(0,0,0,.4)}
 .man p,.man li{line-height:1.6;font-size:14.5px}
 .man ol,.man ul{padding-left:20px;margin:4px 0}
 pre.sql{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-size:12px;max-height:260px;overflow:auto;white-space:pre-wrap}
+/* 문제 영상: 기본은 화면 높이의 약 1/5, 버튼을 누르면 크게 */
+.mz{margin:10px 0 16px}
+.mz .mz-inner{display:flex;justify-content:center;background:#f8fafc;border-radius:12px;padding:6px;overflow:hidden}
+#sMain{container-type:inline-size}
+.mz.small video.q-media{width:20cqw;max-width:100%;height:auto;max-height:none}
+.mz.small .yt{width:20cqw;max-width:100%;margin:0}
+.mz.big video.q-media{width:60cqw;max-width:100%;height:auto;max-height:none}
+.mz.big .yt{width:60cqw;max-width:100%;margin:0}
+.mz .yt{aspect-ratio:16/9;border-radius:10px}
+/* 보기: 가로로 나란히 (화면이 좁으면 자동으로 줄바꿈) */
+.opts-s{display:grid !important;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.opt-s{flex-direction:column;align-items:stretch;gap:8px;height:100%}
+.opt-s .opt-num{flex:none;width:32px;height:32px;font-size:15px}
+.opt-s .opt-text{font-size:16px}
+.opt-s img.media.opt-media{max-height:150px;width:100%;object-fit:contain;background:#f8fafc;border-radius:10px}
+.opt-s video.media.opt-media{max-height:150px;width:100%}
+.opt-s .yt.opt-media{width:100%;margin:0}
 </style>
 </head>
 <body>
@@ -791,8 +808,10 @@ function renderEdit(){
       <div>${sel ? questionEditor(sel) : '<p class="hint">왼쪽에서 문항을 고르거나 새로 추가하세요.</p>'}</div>
     </div>`;
 }
-function mediaEditorHTML(m, qid, oid){
-  const kinds = [['none','없음'],['image','사진'],['video','동영상'],['youtube','유튜브']];
+function mediaEditorHTML(m, qid, oid, isOpt){
+  const kinds = isOpt
+    ? [['none','한글 글'],['image','사진'],['video','영상'],['youtube','유튜브']]
+    : [['none','없음'],['image','사진'],['video','동영상'],['youtube','유튜브']];
   const cur2 = m || { kind: 'none' };
   const attrs = `data-qid="${qid}" data-oid="${oid || ''}"`;
   let extra = '';
@@ -824,8 +843,8 @@ function questionEditor(q){
         <label class="row"><input type="radio" name="ans" data-ans="1" value="${o.id}" ${q.answer_option === o.id ? 'checked' : ''}> <b>정답으로 지정</b></label>
         <div class="row"><b>${i + 1}번 보기</b> <button class="btn small btn-danger" data-act="delOpt" data-oid="${o.id}">삭제</button></div>
       </div>
-      <input class="input" data-o="text" data-oid="${o.id}" value="${esc(o.text)}" placeholder="보기 글 (한글 가능)" style="margin-top:8px">
-      ${mediaEditorHTML(o.media, q.id, o.id)}
+      ${(o.media && o.media.kind !== 'none') ? '' : `<input class="input" data-o="text" data-oid="${o.id}" value="${esc(o.text)}" placeholder="보기 글 (한글 가능)" style="margin-top:8px">`}
+      ${mediaEditorHTML(o.media, q.id, o.id, true)}
     </div>`).join('');
   const body = q.type === 'mc'
     ? `<h3 class="h3">보기 (${(q.options || []).length}개)</h3>${optRows}
@@ -1124,7 +1143,7 @@ function renderStuMain(){
     ? `<div class="opts-s">${q.options.map((o, i) => `
         <div class="opt-s ${a.sel === o.id ? 'on' : ''}" data-oid="${o.id}" role="radio" aria-checked="${a.sel === o.id}" tabindex="0">
           <div class="opt-num">${i + 1}</div>
-          <div class="opt-body">${o.text ? `<div class="opt-text">${esc(o.text)}</div>` : ''}${previewHTML(o.media, 'opt-media')}</div>
+          <div class="opt-body">${previewHTML(o.media, 'opt-media') || (o.text ? `<div class="opt-text">${esc(o.text)}</div>` : '')}</div>
         </div>`).join('')}</div>`
     : `<textarea class="input" rows="8" data-essay="1" placeholder="답을 입력하세요">${esc(a.text)}</textarea>`;
   main.innerHTML = `
@@ -1133,7 +1152,7 @@ function renderStuMain(){
       <label class="flag-chk"><input type="checkbox" id="flagBox" ${a.flag ? 'checked' : ''}> ⚠ 애매함 · 나중에 다시 보기</label>
     </div>
     ${q.body ? `<p class="qtext">${esc(q.body)}</p>` : ''}
-    ${previewHTML(q.media, 'q-media')}
+    ${zoomWrap(q.media)}
     ${body}
     <div class="row between wrap" style="margin-top:20px">
       <button class="btn" data-nav="-1" ${stu.idx === 0 ? 'disabled' : ''}>◀ 이전</button>
@@ -1143,6 +1162,14 @@ function renderStuMain(){
       <button class="btn btn-primary" data-submit="1" style="padding:12px 28px;font-size:16px">시험 제출</button>
     </div>`;
   hydrate(main, stu.client);
+}
+// 문제 영상은 작게 보여 주고, 버튼으로 크게 보기를 켜고 끌 수 있습니다
+function zoomWrap(m){
+  if (!m || (m.kind !== 'video' && m.kind !== 'youtube')) return previewHTML(m, 'q-media');
+  return `<div class="mz small" id="mzBox">
+    <div class="mz-inner">${previewHTML(m, 'q-media')}</div>
+    <button class="btn small" data-zoom="1">🔍 크게 보기</button>
+  </div>`;
 }
 function renderStudent(){
   renderStuGrid();
@@ -1177,6 +1204,15 @@ studentEl.addEventListener('click', async (e) => {
   const t = e.target;
   if (t.closest('video,iframe,audio')) return;
   let b;
+  if ((b = t.closest('[data-zoom]'))) {
+    const box = $('#mzBox');
+    if (box) {
+      const big = box.classList.toggle('big');
+      box.classList.toggle('small', !big);
+      b.textContent = big ? '🔎 작게 보기' : '🔍 크게 보기';
+    }
+    return;
+  }
   if ((b = t.closest('[data-si]'))) { stu.idx = +b.dataset.si; renderStudent(); return; }
   const opt = t.closest('.opt-s');
   if (opt) {
