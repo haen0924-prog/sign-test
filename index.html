@@ -401,6 +401,21 @@ function ytId(url){
   if (m) return m[1];
   return /^[A-Za-z0-9_-]{11}$/.test(s) ? s : '';
 }
+// 시간 입력: "90" (초), "1:30" (분:초), "1:02:03" (시:분:초) → 초 단위 숫자
+function parseTime(v){
+  const s = String(v || '').trim();
+  if (!s) return null;
+  if (/^\d+$/.test(s)) return +s;
+  const m = s.match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (!m) return NaN;
+  return m[3] !== undefined ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : (+m[1]) * 60 + (+m[2]);
+}
+function fmtTime(sec){
+  const s = Math.floor(sec || 0);
+  const h = Math.floor(s / 3600), mi = Math.floor((s % 3600) / 60), se = s % 60;
+  const p = (n) => String(n).padStart(2, '0');
+  return h ? `${h}:${p(mi)}:${p(se)}` : `${mi}:${p(se)}`;
+}
 function toast(msg, isErr){
   const t = $('#toast');
   t.textContent = msg;
@@ -712,7 +727,13 @@ function previewHTML(m, cls){
   if (!m) return '';
   if (m.kind === 'image' && m.path) return `<img class="media ${c}" data-mpath="${esc(m.path)}" alt="">`;
   if (m.kind === 'video' && m.path) return `<video class="media ${c}" controls data-mpath="${esc(m.path)}"></video>`;
-  if (m.kind === 'youtube' && m.id) return `<div class="yt ${c}"><iframe src="https://www.youtube.com/embed/${esc(m.id)}" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
+  if (m.kind === 'youtube' && m.id) {
+    const q = [];
+    if (m.start) q.push('start=' + Math.floor(m.start));
+    if (m.end && m.end > (m.start || 0)) q.push('end=' + Math.floor(m.end));
+    const qs = q.length ? '?' + q.join('&') : '';
+    return `<div class="yt ${c}"><iframe src="https://www.youtube.com/embed/${esc(m.id)}${qs}" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>`;
+  }
   return '';
 }
 
@@ -780,7 +801,12 @@ function mediaEditorHTML(m, qid, oid){
       <input type="file" style="display:none" data-m="file" ${attrs} accept="${cur2.kind === 'image' ? 'image/*' : 'video/mp4,video/webm'}"></label>`;
   }
   if (cur2.kind === 'youtube') {
-    extra += `<input class="input small" data-m="yt" ${attrs} placeholder="유튜브 주소 붙여넣기" value="${esc(cur2.id ? 'https://youtu.be/' + cur2.id : '')}">`;
+    extra += `<input class="input small" data-m="yt" ${attrs} placeholder="유튜브 주소 붙여넣기" value="${esc(cur2.id ? 'https://youtu.be/' + cur2.id : '')}">
+      <div class="row wrap">
+        <input class="input small" data-m="ys" ${attrs} placeholder="시작 (예: 0:30)" value="${esc(cur2.start ? fmtTime(cur2.start) : '')}">
+        <input class="input small" data-m="ye" ${attrs} placeholder="끝 (비우면 끝까지)" value="${esc(cur2.end ? fmtTime(cur2.end) : '')}">
+      </div>
+      <p class="hint">구간을 비워 두면 처음부터 끝까지 나옵니다.</p>`;
   }
   return `<div class="media-ed">
       <select class="input small" data-m="kind" ${attrs}>
@@ -1017,7 +1043,19 @@ teacherEl.addEventListener('input', (e) => {
   else if (t.dataset.o === 'text') { const tg = getTarget(cur.qid, t.dataset.oid); if (tg) { tg.obj.text = t.value; markDirty(); } }
   else if (t.dataset.m === 'yt') {
     const tg = getTarget(cur.qid, t.dataset.oid); if (!tg) return;
-    tg.obj.media = { kind: 'youtube', id: ytId(t.value) }; markDirty();
+    tg.obj.media = Object.assign({}, tg.obj.media, { kind: 'youtube', id: ytId(t.value) }); markDirty();
+  }
+  else if (t.dataset.m === 'ys' || t.dataset.m === 'ye') {
+    const tg = getTarget(cur.qid, t.dataset.oid); if (!tg) return;
+    const v = parseTime(t.value);
+    if (Number.isNaN(v)) { toast('시간은 0:30 또는 30 형식으로 적어 주세요.', true); return; }
+    const key = t.dataset.m === 'ys' ? 'start' : 'end';
+    tg.obj.media = Object.assign({}, tg.obj.media, { [key]: v });
+    if (key === 'start' && v == null) tg.obj.media.start = 0;
+    if (tg.obj.media.end != null && tg.obj.media.start != null && tg.obj.media.end <= tg.obj.media.start) {
+      toast('끝 시각은 시작 시각보다 뒤여야 합니다.', true);
+    }
+    markDirty();
   }
 });
 teacherEl.addEventListener('change', async (e) => {
