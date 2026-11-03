@@ -95,10 +95,15 @@ pre.sql{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-si
 .mz{margin:10px 0 16px}
 .mz .mz-inner{display:flex;justify-content:center;background:#f8fafc;border-radius:12px;padding:6px;overflow:hidden}
 #sMain{container-type:inline-size}
-.mz.small video.q-media{width:20cqw;max-width:100%;height:auto;max-height:none}
-.mz.small .yt{width:20cqw;max-width:100%;margin:0}
-.mz.big video.q-media{width:60cqw;max-width:100%;height:auto;max-height:none}
-.mz.big .yt{width:60cqw;max-width:100%;margin:0}
+/* 기본 크기: 가로 영상은 문제 화면 폭의 약 60%, 세로 영상은 화면 높이를 넘지 않게 */
+.mz video.q-media{width:auto;max-width:60cqw;max-height:50vh;height:auto}
+.mz .yt{width:60cqw;max-width:100%;margin:0}
+/* 크게 보기: 화면 전체에 영상을 띄웁니다 */
+.mz.big{position:fixed;inset:0;z-index:60;margin:0;background:rgba(15,23,42,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+.mz.big .mz-inner{background:transparent;padding:0;width:100%;display:flex;justify-content:center}
+.mz.big video.q-media{width:auto;max-width:92vw;max-height:80vh}
+.mz.big .yt{width:min(92vw, calc(80vh * 16 / 9));max-width:92vw}
+.mz.big .btn{margin-top:12px}
 .mz .yt{aspect-ratio:16/9;border-radius:10px}
 /* 보기: 가로로 나란히 (화면이 좁으면 자동으로 줄바꿈) */
 .opts-s{display:grid !important;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
@@ -1166,7 +1171,7 @@ function renderStuMain(){
 // 문제 영상은 작게 보여 주고, 버튼으로 크게 보기를 켜고 끌 수 있습니다
 function zoomWrap(m){
   if (!m || (m.kind !== 'video' && m.kind !== 'youtube')) return previewHTML(m, 'q-media');
-  return `<div class="mz small" id="mzBox">
+  return `<div class="mz" id="mzBox">
     <div class="mz-inner">${previewHTML(m, 'q-media')}</div>
     <button class="btn small" data-zoom="1">🔍 크게 보기</button>
   </div>`;
@@ -1208,8 +1213,7 @@ studentEl.addEventListener('click', async (e) => {
     const box = $('#mzBox');
     if (box) {
       const big = box.classList.toggle('big');
-      box.classList.toggle('small', !big);
-      b.textContent = big ? '🔎 작게 보기' : '🔍 크게 보기';
+      b.textContent = big ? '✕ 닫기' : '🔍 크게 보기';
     }
     return;
   }
@@ -1238,6 +1242,16 @@ studentEl.addEventListener('change', (e) => {
     const q = stu.exam.questions[stu.idx];
     stu.ans[q.id] = Object.assign({ sel: null, text: '', flag: false }, stu.ans[q.id], { flag: e.target.checked });
     saveStu(); renderStuGrid();
+  }
+});
+// Esc 키로 크게 보기를 닫습니다
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const box = $('#mzBox');
+  if (box && box.classList.contains('big')) {
+    box.classList.remove('big');
+    const btn = box.querySelector('[data-zoom]');
+    if (btn) btn.textContent = '🔍 크게 보기';
   }
 });
 $('#sName').addEventListener('input', (e) => { if (stu) { stu.name = e.target.value; saveStu(); } });
