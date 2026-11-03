@@ -1095,7 +1095,10 @@ async function act(name, el){
     case 'save': await saveExam(); return renderMain();
     case 'link': return copyLink();
     case 'subs': await loadSubs(); cur.view = 'subs'; return renderMain();
-    case 'back': cur.view = 'edit'; return renderMain();
+    case 'back':
+      // 학생 한 명의 상세 화면에서는 수강생 목록으로, 나머지 화면에서는 편집 화면으로 돌아갑니다
+      cur.view = (cur.view === 'subDetail') ? 'subs' : 'edit';
+      return renderMain();
     case 'dup': return duplicateExam();
     case 'del': return deleteExam();
     case 'addQ': {
