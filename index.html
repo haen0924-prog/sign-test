@@ -732,6 +732,43 @@ function examProblems(){
   });
   return p;
 }
+// 저장하지 않은 내용까지 학생 화면 그대로 보여 줍니다. 답은 저장되지 않고 제출도 되지 않습니다.
+function openPreview(){
+  if (!cur || !cur.questions.length) return toast('문항이 없습니다. 문제를 먼저 만들어 주세요.', true);
+  const exam = {
+    id: cur.exam.id, title: cur.exam.title || '시험',
+    questions: cur.questions.map((q, i) => ({
+      id: q.id, position: i, type: q.type, body: q.body || '', media: q.media || { kind: 'none' },
+      passage: hasPassage(q.passage) ? q.passage : null,
+      options: (q.options || []).map(o => ({ id: o.id, text: o.text || '', media: o.media || { kind: 'none' } }))
+    }))
+  };
+  stu = { client: sb, code: 'preview', exam, idx: 0, name: '미리보기', ans: {}, submitted: false, preview: true };
+  showOnly('student');
+  $('#btnSetting').hidden = true;
+  $('#btnLogout').hidden = true;
+  $('#sName').value = '미리보기';
+  ensurePreviewBar(true);
+  renderStudent();
+}
+function ensurePreviewBar(on){
+  let bar = document.getElementById('previewBar');
+  if (!on) { if (bar) bar.remove(); return; }
+  if (bar) return;
+  bar = document.createElement('div');
+  bar.id = 'previewBar';
+  bar.style.cssText = 'position:sticky;top:0;z-index:50;background:#fef3c7;border-bottom:1px solid #d97706;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
+  bar.innerHTML = '<b style="color:#92400e">👀 미리보기 중 · 답은 저장되지 않고 제출되지 않습니다</b><button class="btn small" data-back="1">← 편집으로 돌아가기</button>';
+  studentEl.prepend(bar);
+}
+function closePreview(){
+  ensurePreviewBar(false);
+  stu = null;
+  showOnly('teacher');
+  $('#btnSetting').hidden = false;
+  $('#btnLogout').hidden = true;
+  renderMain();
+}
 async function copyLink(){
   if (cur.dirty) {
     if (!confirm('저장하지 않은 내용이 있습니다. 저장한 뒤 링크를 만들까요?')) return;
@@ -740,11 +777,9 @@ async function copyLink(){
   const probs = examProblems();
   if (probs.length && !confirm('배포 전에 확인하세요:\n- ' + probs.slice(0, 8).join('\n- ') + '\n\n그래도 링크를 복사할까요?')) return;
   const url = `${location.origin}${location.pathname}?p=${encodeURIComponent(cfg.url)}&k=${encodeURIComponent(cfg.key)}&c=${encodeURIComponent(cur.exam.share_code)}`;
-  // 시험 제목을 링크 바로 위에 붙여서 복사합니다 (카카오톡 등에 붙여넣을 때 제목이 함께 보이도록)
-  const title = (cur.exam.title || '').trim() || '수어 시험';
-  const text = `[${title}] 시험 링크\n${url}`;
-  try { await navigator.clipboard.writeText(text); toast('시험 제목이 붙은 링크를 복사했습니다. 시험 당일 학생에게 보내세요.'); }
-  catch (e) { prompt('아래 내용을 복사해서 학생에게 보내세요.', text); }
+  // 링크만 복사합니다 (제목을 붙이면 링크가 깨질 수 있습니다)
+  try { await navigator.clipboard.writeText(url); toast('링크를 복사했습니다. 시험 당일 학생에게 보내세요.'); }
+  catch (e) { prompt('아래 링크를 복사해서 학생에게 보내세요.', url); }
 }
 async function duplicateExam(){
   if (!(await confirmLeave())) return;
@@ -853,6 +888,7 @@ function headerBar(){
       <h2 class="h2">${esc(cur.exam.title || '(제목 없음)')} ${cur.dirty ? '<span class="badge" style="background:#b45309">저장 안 됨</span>' : ''}</h2>
       <div class="row wrap">
         <button class="btn btn-primary" data-act="save">💾 저장</button>
+        <button class="btn" data-act="preview">👀 미리보기</button>
         <button class="btn" data-act="link">🔗 링크 복사</button>
         <button class="btn" data-act="subs">📋 제출·채점</button>
         <button class="btn" data-act="export">📤 백업 저장</button>
@@ -1125,6 +1161,7 @@ async function act(name, el){
     case 'export': return exportExam();
     case 'save': await saveExam(); return renderMain();
     case 'link': return copyLink();
+    case 'preview': return openPreview();
     case 'subs': await loadSubs(); cur.view = 'subs'; return renderMain();
     case 'back':
       // 학생 한 명의 상세 화면에서는 수강생 목록으로, 나머지 화면에서는 편집 화면으로 돌아갑니다
@@ -1284,6 +1321,7 @@ function sIsAnswered(q, a){
   return q.type === 'mc' ? !!a.sel : !!(a.text || '').trim();
 }
 function saveStu(){
+  if (stu.preview) return;
   localStorage.setItem('sueo-stu-' + stu.code, JSON.stringify({ name: stu.name, ans: stu.ans, submitted: stu.submitted }));
 }
 function renderStuGrid(){
@@ -1424,7 +1462,7 @@ studentEl.addEventListener('click', async (e) => {
   if (t.closest('video,iframe,audio')) return;
   let b;
   if (t.closest('[data-checkresult]')) { checkResult(); return; }
-  if (t.closest('[data-back]')) { if (stu.exam) renderStudent(); else showResultForm(''); return; }
+  if (t.closest('[data-back]')) { if (stu.preview) return closePreview(); if (stu.exam) renderStudent(); else showResultForm(''); return; }
   if (t.closest('#btnResult')) { showResultForm(''); return; }
   if ((b = t.closest('[data-zoom]'))) {
     const box = b.closest('.mz');
@@ -1472,6 +1510,7 @@ document.addEventListener('keydown', (e) => {
 });
 $('#sName').addEventListener('input', (e) => { if (stu) { stu.name = e.target.value; saveStu(); } });
 async function submitStu(){
+  if (stu && stu.preview) { alert('미리보기에서는 제출되지 않습니다. 실제 링크로 확인해 주세요.'); return; }
   const name = ($('#sName').value || '').trim();
   if (!name) { alert('이름을 입력한 뒤 제출해 주세요.'); $('#sName').focus(); return; }
   const unanswered = stu.exam.questions.filter(q => !sIsAnswered(q, stu.ans[q.id])).length;
