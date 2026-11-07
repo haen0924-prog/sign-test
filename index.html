@@ -733,8 +733,11 @@ async function copyLink(){
   const probs = examProblems();
   if (probs.length && !confirm('배포 전에 확인하세요:\n- ' + probs.slice(0, 8).join('\n- ') + '\n\n그래도 링크를 복사할까요?')) return;
   const url = `${location.origin}${location.pathname}?p=${encodeURIComponent(cfg.url)}&k=${encodeURIComponent(cfg.key)}&c=${encodeURIComponent(cur.exam.share_code)}`;
-  try { await navigator.clipboard.writeText(url); toast('링크를 복사했습니다. 시험 당일 학생에게 보내세요.'); }
-  catch (e) { prompt('아래 링크를 복사해서 학생에게 보내세요.', url); }
+  // 시험 제목을 링크 바로 위에 붙여서 복사합니다 (카카오톡 등에 붙여넣을 때 제목이 함께 보이도록)
+  const title = (cur.exam.title || '').trim() || '수어 시험';
+  const text = `[${title}] 시험 링크\n${url}`;
+  try { await navigator.clipboard.writeText(text); toast('시험 제목이 붙은 링크를 복사했습니다. 시험 당일 학생에게 보내세요.'); }
+  catch (e) { prompt('아래 내용을 복사해서 학생에게 보내세요.', text); }
 }
 async function duplicateExam(){
   if (!(await confirmLeave())) return;
