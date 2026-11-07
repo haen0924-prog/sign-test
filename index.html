@@ -757,6 +757,7 @@ function ensurePreviewBar(on){
   if (bar) return;
   bar = document.createElement('div');
   bar.id = 'previewBar';
+  bar.style.gridColumn = '1 / -1'; // 2단 레이아웃을 깨지 않도록 가로 전체를 차지
   bar.style.cssText = 'position:sticky;top:0;z-index:50;background:#fef3c7;border-bottom:1px solid #d97706;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
   bar.innerHTML = '<b style="color:#92400e">👀 미리보기 중 · 답은 저장되지 않고 제출되지 않습니다</b><button class="btn small" data-back="1">← 편집으로 돌아가기</button>';
   studentEl.prepend(bar);
