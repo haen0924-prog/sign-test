@@ -760,6 +760,7 @@ function ensurePreviewBar(on){
   bar.style.cssText = 'position:sticky;top:0;z-index:50;background:#fef3c7;border-bottom:1px solid #d97706;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap';
   bar.innerHTML = '<b style="color:#92400e">👀 미리보기 중 · 답은 저장되지 않고 제출되지 않습니다</b><button class="btn small" data-back="1">← 편집으로 돌아가기</button>';
   studentEl.parentNode.insertBefore(bar, studentEl); // 2단 화면 밖, 위쪽에 붙여서 칸을 차지하지 않게
+  bar.querySelector('button').addEventListener('click', closePreview); // 안내줄은 #student 밖에 있으므로 직접 연결
 }
 function closePreview(){
   ensurePreviewBar(false);
