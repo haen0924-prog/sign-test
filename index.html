@@ -179,6 +179,9 @@ pre.sql{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-si
   <aside class="panel">
     <label class="lbl" style="margin-top:0">이름 (필수)</label>
     <input class="input" id="sName" placeholder="예) 홍길동">
+    <label class="lbl">전화번호 뒤 4자리 (필수)</label>
+    <input class="input" id="sPhone" inputmode="numeric" maxlength="4" placeholder="예) 5678">
+    <p class="hint">같은 이름이 여럿일 때 구분하는 용도로만 쓰입니다.</p>
     <label class="lbl">성적 확인용 비밀번호 (4~6자리 숫자)</label>
     <input class="input" id="sPin" type="password" inputmode="numeric" maxlength="6" placeholder="예) 1234">
     <p class="hint">성적을 확인할 때 이름과 함께 씁니다. 잊지 않도록 적어 두세요.</p>
@@ -1375,10 +1378,12 @@ function showResultForm(notice){
   $('#sMain').innerHTML = `
     <div style="max-width:460px;margin:0 auto">
       <h2 class="h2">📊 성적 확인</h2>
-      <p class="hint">시험을 제출할 때 적은 이름과 비밀번호를 입력하세요.</p>
+      <p class="hint">시험을 제출할 때 적은 이름, 전화번호 뒤 4자리, 비밀번호를 입력하세요.</p>
       ${notice ? `<div class="warnbox">${esc(notice)}</div>` : ''}
       <label class="lbl">이름</label>
       <input class="input" id="rName" value="${pre}" placeholder="제출할 때 적은 이름">
+      <label class="lbl">전화번호 뒤 4자리</label>
+      <input class="input" id="rPhone" inputmode="numeric" maxlength="4" placeholder="예) 5678">
       <label class="lbl">비밀번호 (4~6자리 숫자)</label>
       <input class="input" id="rPin" type="password" inputmode="numeric" maxlength="6">
       <div class="row wrap" style="margin-top:14px">
@@ -1389,9 +1394,10 @@ function showResultForm(notice){
 }
 async function checkResult(){
   const name = ($('#rName').value || '').trim();
+  const phone = ($('#rPhone').value || '').trim();
   const pin = ($('#rPin').value || '').trim();
-  if (!name || !/^\d{4,6}$/.test(pin)) { alert('이름과 4~6자리 숫자 비밀번호를 입력해 주세요.'); return; }
-  const { data, error } = await stu.client.rpc('get_my_result', { p_code: stu.code, p_name: name, p_pin: pin });
+  if (!name || !/^\d{4}$/.test(phone) || !/^\d{4,6}$/.test(pin)) { alert('이름, 전화번호 뒤 4자리, 4~6자리 숫자 비밀번호를 입력해 주세요.'); return; }
+  const { data, error } = await stu.client.rpc('get_my_result', { p_code: stu.code, p_name: stuKey(name, phone), p_pin: pin });
   if (error) {
     const m = error.message || '';
     const notice = /RESULT_CLOSED/.test(m) ? '아직 성적이 공개되지 않았습니다. 강사님이 공개하면 다시 확인해 주세요.'
@@ -1510,12 +1516,18 @@ document.addEventListener('keydown', (e) => {
   });
 });
 $('#sName').addEventListener('input', (e) => { if (stu) { stu.name = e.target.value; saveStu(); } });
+// 같은 이름을 구분하려고 "이름(전화번호 뒤 4자리)" 형태로 저장합니다 (SQL 변경 없음)
+function stuKey(name, phone){ return `${name}(${phone})`; }
 async function submitStu(){
   if (stu && stu.preview) { alert('미리보기에서는 제출되지 않습니다. 실제 링크로 확인해 주세요.'); return; }
   const name = ($('#sName').value || '').trim();
   if (!name) { alert('이름을 입력한 뒤 제출해 주세요.'); $('#sName').focus(); return; }
+  const phone = ($('#sPhone').value || '').trim();
+  if (!/^\d{4}$/.test(phone)) { alert('전화번호 뒤 4자리를 숫자로 입력해 주세요.'); $('#sPhone').focus(); return; }
   const unanswered = stu.exam.questions.filter(q => !sIsAnswered(q, stu.ans[q.id])).length;
-  const msg = (unanswered ? `아직 답하지 않은 문항이 ${unanswered}개 있습니다.\n\n` : '') + '제출하면 답을 바꿀 수 없습니다. 제출할까요?';
+  const msg = (unanswered ? `아직 답하지 않은 문항이 ${unanswered}개 있습니다.\n\n` : '')
+    + `이름: ${name} / 전화번호 뒤 4자리: ${phone}\n이 정보로 제출합니다. 틀리면 취소 후 고쳐 주세요.\n\n`
+    + '제출하면 답을 바꿀 수 없습니다. 제출할까요?';
   if (!confirm(msg)) return;
   stu.name = name;
   const answers = stu.exam.questions.map(q => {
@@ -1524,7 +1536,7 @@ async function submitStu(){
   });
   const pin = ($('#sPin').value || '').trim();
   if (!/^\d{4,6}$/.test(pin)) { alert('성적 확인용 비밀번호를 4~6자리 숫자로 입력해 주세요.'); $('#sPin').focus(); return; }
-  const { error } = await stu.client.rpc('submit_exam', { p_code: stu.code, p_name: name, p_answers: answers, p_pin: pin });
+  const { error } = await stu.client.rpc('submit_exam', { p_code: stu.code, p_name: stuKey(name, phone), p_answers: answers, p_pin: pin });
   if (error) {
     if (/ALREADY_SUBMITTED/.test(error.message)) { alert('이미 제출한 이름입니다. 같은 이름으로는 한 번만 제출할 수 있습니다.'); return; }
     if (/NAME_REQUIRED/.test(error.message)) { alert('이름을 입력해 주세요.'); return; }
